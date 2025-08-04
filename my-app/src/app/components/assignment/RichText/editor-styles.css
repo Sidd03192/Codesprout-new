@@ -1,0 +1,141 @@
+.rich-text-editor {
+  border-radius: 12px;
+  background-color: transparent;
+  max-height: 500px; /* or desired height */
+}
+
+.editor-content-wrapper {
+  min-height: 120px;
+  background-color: transparent;
+}
+
+/* Code block styles - enhanced for lowlight with black background */
+.ProseMirror pre {
+  background-color: #1e1e1e; /* Dark background for code blocks */
+  border-radius: 8px;
+  padding: 16px;
+  margin: 8px 0;
+  overflow-x: auto;
+  color: #d4d4d4; /* Light text for dark background */
+}
+
+.ProseMirror pre code {
+  color: #d4d4d4; /* Light text color for code */
+  font-size: 0.875rem;
+  line-height: 1.5;
+  tab-size: 2;
+}
+
+/*Codeing styles for lowlight (im so dumb)*/
+/* Add syntax highlighting styles for dark background */
+.ProseMirror pre .hljs-comment,
+.ProseMirror pre .hljs-quote {
+  color: #6a9955; /* Green comments */
+  font-style: italic;
+}
+
+.ProseMirror pre .hljs-keyword,
+.ProseMirror pre .hljs-selector-tag {
+  color: #569cd6; /* Blue keywords */
+}
+
+.ProseMirror pre .hljs-string,
+.ProseMirror pre .hljs-template-tag {
+  color: #ce9178; /* Orange strings */
+}
+
+.ProseMirror pre .hljs-number,
+.ProseMirror pre .hljs-literal {
+  color: #b5cea8; /* Light green numbers */
+}
+
+.ProseMirror pre .hljs-title,
+.ProseMirror pre .hljs-section,
+.ProseMirror pre .hljs-selector-id {
+  color: #dcdcaa; /* Yellow function names */
+}
+
+.ProseMirror pre .hljs-variable,
+.ProseMirror pre .hljs-name {
+  color: #9cdcfe; /* Light blue variables */
+}
+
+.ProseMirror pre .hljs-attr {
+  color: #d19a66; /* Orange attributes */
+}
+
+
+/* Heading styles */
+.ProseMirror h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 1rem 0;
+  
+  color: hsl(var(--heroui-foreground));
+}
+
+.ProseMirror h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0.875rem 0;
+  color: hsl(var(--heroui-foreground));
+  margin-bottom: 2em;
+}
+
+.ProseMirror h3 {
+  font-size: 1.125rem;
+  font-weight: 500;
+  margin: 0.75rem 0;
+  color: hsl(var(--heroui-foreground));
+    margin-bottom: 2em;
+
+}
+
+.ProseMirror p {
+  margin-bottom: 1em; /* Adds space after each paragraph */
+  color:#9cdcfe;
+}
+.ProseMirror h2 {
+  margin-top: 1.5em; /* Adds space above a heading */
+  margin-bottom: 0.5em; /* Adds space below a heading */
+}
+/* ... other existing styles ... */
+
+/* Placeholder styles - updated to match form field */
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: "Enter assignment guidelines";
+  float: left;
+  color: hsl(var(--heroui-default-500));
+  pointer-events: none;
+  height: 0;
+}
+
+/* Form field styling */
+.ProseMirror {
+  color: hsl(var(--heroui-foreground));
+  font-size: 0.9375rem;
+  background-color: transparent;
+}
+
+/* Add focus styling to match HeroUI inputs */
+.rich-text-editor:focus-within {
+  border-color: whitesmoke;
+}
+
+/* Dark theme adjustments */
+.dark .rich-text-editor {
+  background-color: transparent;
+}
+
+.dark .ProseMirror {
+  color: #e4e4e7;
+}
+
+/* Toolbar background */
+.rich-text-editor .flex.flex-wrap.items-center.gap-0\.5.p-2 {
+  background-color: transparent;
+}
+
+p {
+  margin-bottom: 4px;
+}
