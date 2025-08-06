@@ -47,7 +47,7 @@ export default async function AssignmentPage({ params }) {
     try {
       const [fetchedStudents, fetchedRubricData] = await Promise.all([
         fetchStudentsForAssignment(assignmentId),
-        fetchTestcasesForAssignment(assignmentId),
+        fetchRubricDataForAssignment(assignmentId),
       ]);
       return {
         students: fetchedStudents || [],

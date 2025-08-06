@@ -1,7 +1,7 @@
 "use client";
 import { redirect } from "next/navigation";
-
-import { supabase } from "../../supabase-client";
+import { createClient } from "../../../../utils/supabase/client";
+const supabase = createClient();
 import React, { useState } from "react";
 import {
   Button,

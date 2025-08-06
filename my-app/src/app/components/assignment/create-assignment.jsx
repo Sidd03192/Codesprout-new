@@ -99,74 +99,77 @@ export default function CreateAssignmentPage({ session, classes, setOpen }) {
 
     fetchStudents();
   }, [formData.classId]);
-
-  const handleClassChange = useCallback((classId, className) => {
-    // updates class Id
-    setFormData((prev) => ({
-      ...prev,
-      classId,
-      className,
-
-      selectedStudentIds: [],
-    }));
-  });
-  const handleFormChange = (key, value) => {
-    setFormData((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const handleToggleStudent = (studentId) => {
-    setFormData((prev) => {
-      const isSelected = prev.selectedStudentIds.includes(studentId);
-      return {
+  // student & code stuff
+  {
+    const handleClassChange = useCallback((classId, className) => {
+      // updates class Id
+      setFormData((prev) => ({
         ...prev,
-        selectedStudentIds: isSelected
-          ? prev.selectedStudentIds.filter((id) => id !== studentId)
-          : [...prev.selectedStudentIds, studentId],
-      };
+        classId,
+        className,
+
+        selectedStudentIds: [],
+      }));
     });
-  };
+    const handleFormChange = (key, value) => {
+      setFormData((prev) => ({ ...prev, [key]: value }));
+    };
 
-  const handleSelectAllStudents = () => {
-    const allStudentIds = students.map((s) => s.student_id);
-    console.log("all student ids:", allStudentIds);
-    const allSelected = students.length === formData.selectedStudentIds.length;
+    const handleToggleStudent = (studentId) => {
+      setFormData((prev) => {
+        const isSelected = prev.selectedStudentIds.includes(studentId);
+        return {
+          ...prev,
+          selectedStudentIds: isSelected
+            ? prev.selectedStudentIds.filter((id) => id !== studentId)
+            : [...prev.selectedStudentIds, studentId],
+        };
+      });
+    };
 
-    setFormData((prev) => ({
-      ...prev,
-      selectedStudentIds: allSelected ? [] : allStudentIds,
-    }));
-  };
+    const handleSelectAllStudents = () => {
+      const allStudentIds = students.map((s) => s.student_id);
+      console.log("all student ids:", allStudentIds);
+      const allSelected =
+        students.length === formData.selectedStudentIds.length;
 
-  const [output, setOutput] = useState("");
-  const [isRunning, setIsRunning] = useState(false);
+      setFormData((prev) => ({
+        ...prev,
+        selectedStudentIds: allSelected ? [] : allStudentIds,
+      }));
+    };
 
-  const runCode = async () => {
-    const code = editorRef.current?.getValue?.();
-    if (!code) {
-      setOutput("Please select a language and write some code.");
-      return;
-    }
+    const [output, setOutput] = useState("");
+    const [isRunning, setIsRunning] = useState(false);
 
-    try {
-      setIsRunning(true);
-      const result = await executeCode(selectedLanguage || "java", code);
-      console.log(result);
-      const runResult = result.run || {};
-      const finalOutput =
-        runResult.output ||
-        runResult.stdout ||
-        runResult.stderr ||
-        "No output.";
+    const runCode = async () => {
+      const code = editorRef.current?.getValue?.();
+      if (!code) {
+        setOutput("Please select a language and write some code.");
+        return;
+      }
 
-      setOutput(finalOutput);
-    } catch (error) {
-      console.error(error);
-      console.error("Execution failed:", error);
-      setOutput("Execution failed.");
-    } finally {
-      setIsRunning(false);
-    }
-  };
+      try {
+        setIsRunning(true);
+        const result = await executeCode(selectedLanguage || "java", code);
+        console.log(result);
+        const runResult = result.run || {};
+        const finalOutput =
+          runResult.output ||
+          runResult.stdout ||
+          runResult.stderr ||
+          "No output.";
+
+        setOutput(finalOutput);
+      } catch (error) {
+        console.error(error);
+        console.error("Execution failed:", error);
+        setOutput("Execution failed.");
+      } finally {
+        setIsRunning(false);
+      }
+    };
+  }
 
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
@@ -213,6 +216,7 @@ export default function CreateAssignmentPage({ session, classes, setOpen }) {
       show_results: formData.showResults,
       check_style: formData.checkStyle,
       testing_url: testing_url,
+      rubric: sections,
     };
 
     console.log("Submitting assignmentData to the database:", assignmentData);
@@ -387,6 +391,98 @@ export default function CreateAssignmentPage({ session, classes, setOpen }) {
     });
   }, []);
 
+  // rubric state & methods
+  {
+    const [sections, setSections] = useState([
+      {
+        id: "section_1",
+        title: "Styling Criteria",
+        items: [
+          {
+            id: "item_1_1",
+            name: "",
+            maxPoints: 0,
+            autograde: false,
+          },
+        ],
+        isNameEditable: true,
+        canAddItems: true,
+        autograde: false, // This is for the section itself
+      },
+      {
+        id: "section_2",
+        title: "Requirements",
+        items: [
+          {
+            id: "item_2_1",
+            name: "",
+            maxPoints: 0,
+            autograde: true,
+          },
+        ],
+        isNameEditable: true,
+        canAddItems: true,
+        autograde: true, // This is for the section itself
+      },
+    ]);
+    const handleToggleSectionAutograde = (sectionId) => {
+      console.log("toggling autograde for section:", sectionId);
+      setSections((currentSections) =>
+        currentSections.map((section) =>
+          section.id === sectionId
+            ? { ...section, autograde: !section.autograde }
+            : section
+        )
+      );
+    };
+
+    const handleAddItem = (sectionId) => {
+      setSections((currentSections) =>
+        currentSections.map((section) => {
+          if (section.id === sectionId) {
+            const newItem = {
+              id: `item_${Date.now()}`,
+              name: "",
+              maxPoints: 5,
+              autograde: false,
+            };
+            return { ...section, items: [...section.items, newItem] };
+          }
+          return section;
+        })
+      );
+    };
+
+    const handleDeleteItem = (sectionId, itemId) => {
+      setSections((currentSections) =>
+        currentSections.map((section) => {
+          if (section.id === sectionId) {
+            return {
+              ...section,
+              items: section.items.filter((item) => item.id !== itemId),
+            };
+          }
+          return section;
+        })
+      );
+    };
+
+    const handleItemChange = (sectionId, itemId, field, value) => {
+      setSections((currentSections) =>
+        currentSections.map((section) => {
+          if (section.id === sectionId) {
+            return {
+              ...section,
+              items: section.items.map((item) =>
+                item.id === itemId ? { ...item, [field]: value } : item
+              ),
+            };
+          }
+          return section;
+        })
+      );
+    };
+  }
   const languages = [
     { key: "python", name: "Python" },
     { key: "java", name: "Java" },
@@ -623,7 +719,6 @@ export default function CreateAssignmentPage({ session, classes, setOpen }) {
               </div>
               <CodeEditor
                 classname="w-full"
-                height={"600px"}
                 language={selectedLanguage || "java"}
                 editorRef={editorRef}
                 role="teacher"
@@ -694,28 +789,6 @@ export default function CreateAssignmentPage({ session, classes, setOpen }) {
                         Check for code style
                       </Checkbox>
 
-                      <Tooltip
-                        className="max-w-[300px]"
-                        content={
-                          <div>
-                            {"Includes class methods & variable names"}
-                            <br />
-                            {"(its harmless)"}
-                          </div>
-                        }
-                      >
-                        <Checkbox
-                          value={formData.allowAutocomplete}
-                          onValueChange={(value) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              allowAutocomplete: value,
-                            }))
-                          }
-                        >
-                          Disable autocomplete
-                        </Checkbox>
-                      </Tooltip>
                       <Checkbox
                         value={formData.allowCopyPaste}
                         onValueChange={(value) =>
@@ -731,8 +804,16 @@ export default function CreateAssignmentPage({ session, classes, setOpen }) {
                     <div className="w-full flex items-center justify-center">
                       <Divider className="w-4/5 justify-center" />
                     </div>
-                    <div className="space-y-4 pt-2 overflow-y-auto max-h-[400px] custom-scrollbar">
-                      <MiniRubric />
+                    <div className="space-y-4 pt-2 overflow-y-auto max-h-[450px] custom-scrollbar">
+                      <MiniRubric
+                        sections={sections}
+                        handleToggleSectionAutograde={
+                          handleToggleSectionAutograde
+                        }
+                        handleAddItem={handleAddItem}
+                        handleDeleteItem={handleDeleteItem}
+                        handleItemChange={handleItemChange}
+                      />
                     </div>
                   </div>
                 </Tab>
