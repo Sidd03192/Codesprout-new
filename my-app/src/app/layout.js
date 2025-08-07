@@ -1,7 +1,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Provider from "./Provider";
-import {ToastProvider} from "@heroui/toast";
+import { ToastProvider } from "@heroui/toast";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,19 +15,23 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: "Code Sprout",
-  
+
   description: "The new platform for classroom-based coding education",
 };
-
+const theme = {
+  components: {
+    Button: {
+      defaultProps: {
+        radius: "sm",
+      },
+    },
+  },
+};
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className="dark text-foreground bg-background h-screen w-screen overflow-hidden  ">
-        <Provider >   {children}
-
-        </Provider> 
-        
-        
+        <Provider theme={theme}>{children}</Provider>
       </body>
     </html>
   );

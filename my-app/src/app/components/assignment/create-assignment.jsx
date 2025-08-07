@@ -100,76 +100,74 @@ export default function CreateAssignmentPage({ session, classes, setOpen }) {
     fetchStudents();
   }, [formData.classId]);
   // student & code stuff
-  {
-    const handleClassChange = useCallback((classId, className) => {
-      // updates class Id
-      setFormData((prev) => ({
-        ...prev,
-        classId,
-        className,
 
-        selectedStudentIds: [],
-      }));
+  const handleClassChange = useCallback((classId, className) => {
+    // updates class Id
+    setFormData((prev) => ({
+      ...prev,
+      classId,
+      className,
+
+      selectedStudentIds: [],
+    }));
+  });
+  const handleFormChange = (key, value) => {
+    setFormData((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleToggleStudent = (studentId) => {
+    setFormData((prev) => {
+      const isSelected = prev.selectedStudentIds.includes(studentId);
+      return {
+        ...prev,
+        selectedStudentIds: isSelected
+          ? prev.selectedStudentIds.filter((id) => id !== studentId)
+          : [...prev.selectedStudentIds, studentId],
+      };
     });
-    const handleFormChange = (key, value) => {
-      setFormData((prev) => ({ ...prev, [key]: value }));
-    };
+  };
 
-    const handleToggleStudent = (studentId) => {
-      setFormData((prev) => {
-        const isSelected = prev.selectedStudentIds.includes(studentId);
-        return {
-          ...prev,
-          selectedStudentIds: isSelected
-            ? prev.selectedStudentIds.filter((id) => id !== studentId)
-            : [...prev.selectedStudentIds, studentId],
-        };
-      });
-    };
+  const handleSelectAllStudents = () => {
+    const allStudentIds = students.map((s) => s.student_id);
+    console.log("all student ids:", allStudentIds);
+    const allSelected = students.length === formData.selectedStudentIds.length;
 
-    const handleSelectAllStudents = () => {
-      const allStudentIds = students.map((s) => s.student_id);
-      console.log("all student ids:", allStudentIds);
-      const allSelected =
-        students.length === formData.selectedStudentIds.length;
+    setFormData((prev) => ({
+      ...prev,
+      selectedStudentIds: allSelected ? [] : allStudentIds,
+    }));
+  };
 
-      setFormData((prev) => ({
-        ...prev,
-        selectedStudentIds: allSelected ? [] : allStudentIds,
-      }));
-    };
+  const [output, setOutput] = useState("");
+  const [isRunning, setIsRunning] = useState(false);
 
-    const [output, setOutput] = useState("");
-    const [isRunning, setIsRunning] = useState(false);
+  const runCode = async () => {
+    const code = editorRef.current?.getValue?.();
+    if (!code) {
+      setOutput("Please select a language and write some code.");
+      return;
+    }
 
-    const runCode = async () => {
-      const code = editorRef.current?.getValue?.();
-      if (!code) {
-        setOutput("Please select a language and write some code.");
-        return;
-      }
+    try {
+      setIsRunning(true);
+      const result = await executeCode(selectedLanguage || "java", code);
+      console.log(result);
+      const runResult = result.run || {};
+      const finalOutput =
+        runResult.output ||
+        runResult.stdout ||
+        runResult.stderr ||
+        "No output.";
 
-      try {
-        setIsRunning(true);
-        const result = await executeCode(selectedLanguage || "java", code);
-        console.log(result);
-        const runResult = result.run || {};
-        const finalOutput =
-          runResult.output ||
-          runResult.stdout ||
-          runResult.stderr ||
-          "No output.";
-
-        setOutput(finalOutput);
-      } catch (error) {
-        console.error(error);
-        console.error("Execution failed:", error);
-        setOutput("Execution failed.");
-      } finally {
-        setIsRunning(false);
-      }
-    };
-  }
+      setOutput(finalOutput);
+    } catch (error) {
+      console.error(error);
+      console.error("Execution failed:", error);
+      setOutput("Execution failed.");
+    } finally {
+      setIsRunning(false);
+    }
+  };
 
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
@@ -330,7 +328,6 @@ export default function CreateAssignmentPage({ session, classes, setOpen }) {
   const uploadTestcases = async () => {
     try {
       const fileWrapper = testcases[0];
-
       // 3. Get the ACTUAL file from the wrapper object
       const actualFileToUpload = fileWrapper.file;
       console.log("file to upload", fileWrapper.file);
@@ -392,97 +389,97 @@ export default function CreateAssignmentPage({ session, classes, setOpen }) {
   }, []);
 
   // rubric state & methods
-  {
-    const [sections, setSections] = useState([
-      {
-        id: "section_1",
-        title: "Styling Criteria",
-        items: [
-          {
-            id: "item_1_1",
+
+  const [sections, setSections] = useState([
+    {
+      id: "section_1",
+      title: "Styling Criteria",
+      items: [
+        {
+          id: "item_1_1",
+          name: "",
+          maxPoints: 0,
+          autograde: false,
+        },
+      ],
+      isNameEditable: true,
+      canAddItems: true,
+      autograde: false, // This is for the section itself
+    },
+    {
+      id: "section_2",
+      title: "Requirements",
+      items: [
+        {
+          id: "item_2_1",
+          name: "",
+          maxPoints: 0,
+          autograde: true,
+        },
+      ],
+      isNameEditable: true,
+      canAddItems: true,
+      autograde: true, // This is for the section itself
+    },
+  ]);
+  const handleToggleSectionAutograde = (sectionId) => {
+    console.log("toggling autograde for section:", sectionId);
+    setSections((currentSections) =>
+      currentSections.map((section) =>
+        section.id === sectionId
+          ? { ...section, autograde: !section.autograde }
+          : section
+      )
+    );
+  };
+
+  const handleAddItem = (sectionId) => {
+    setSections((currentSections) =>
+      currentSections.map((section) => {
+        if (section.id === sectionId) {
+          const newItem = {
+            id: `item_${Date.now()}`,
             name: "",
-            maxPoints: 0,
+            maxPoints: 5,
             autograde: false,
-          },
-        ],
-        isNameEditable: true,
-        canAddItems: true,
-        autograde: false, // This is for the section itself
-      },
-      {
-        id: "section_2",
-        title: "Requirements",
-        items: [
-          {
-            id: "item_2_1",
-            name: "",
-            maxPoints: 0,
-            autograde: true,
-          },
-        ],
-        isNameEditable: true,
-        canAddItems: true,
-        autograde: true, // This is for the section itself
-      },
-    ]);
-    const handleToggleSectionAutograde = (sectionId) => {
-      console.log("toggling autograde for section:", sectionId);
-      setSections((currentSections) =>
-        currentSections.map((section) =>
-          section.id === sectionId
-            ? { ...section, autograde: !section.autograde }
-            : section
-        )
-      );
-    };
+          };
+          return { ...section, items: [...section.items, newItem] };
+        }
+        return section;
+      })
+    );
+  };
 
-    const handleAddItem = (sectionId) => {
-      setSections((currentSections) =>
-        currentSections.map((section) => {
-          if (section.id === sectionId) {
-            const newItem = {
-              id: `item_${Date.now()}`,
-              name: "",
-              maxPoints: 5,
-              autograde: false,
-            };
-            return { ...section, items: [...section.items, newItem] };
-          }
-          return section;
-        })
-      );
-    };
+  const handleDeleteItem = (sectionId, itemId) => {
+    setSections((currentSections) =>
+      currentSections.map((section) => {
+        if (section.id === sectionId) {
+          return {
+            ...section,
+            items: section.items.filter((item) => item.id !== itemId),
+          };
+        }
+        return section;
+      })
+    );
+  };
 
-    const handleDeleteItem = (sectionId, itemId) => {
-      setSections((currentSections) =>
-        currentSections.map((section) => {
-          if (section.id === sectionId) {
-            return {
-              ...section,
-              items: section.items.filter((item) => item.id !== itemId),
-            };
-          }
-          return section;
-        })
-      );
-    };
+  const handleItemChange = (sectionId, itemId, field, value) => {
+    setSections((currentSections) =>
+      currentSections.map((section) => {
+        if (section.id === sectionId) {
+          return {
+            ...section,
+            items: section.items.map((item) =>
+              item.id === itemId ? { ...item, [field]: value } : item
+            ),
+          };
+        }
+        return section;
+      })
+    );
+  };
 
-    const handleItemChange = (sectionId, itemId, field, value) => {
-      setSections((currentSections) =>
-        currentSections.map((section) => {
-          if (section.id === sectionId) {
-            return {
-              ...section,
-              items: section.items.map((item) =>
-                item.id === itemId ? { ...item, [field]: value } : item
-              ),
-            };
-          }
-          return section;
-        })
-      );
-    };
-  }
   const languages = [
     { key: "python", name: "Python" },
     { key: "java", name: "Java" },

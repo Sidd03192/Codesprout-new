@@ -93,6 +93,7 @@ export async function fetchRubricDataForAssignment(assignmentId) {
     .select("testcases, rubric")
     .eq("id", assignmentId);
 
+  console.log("rubric data fetched: **********", data);
   if (error) {
     console.error("Error fetching assignments:", error);
     return [];
@@ -161,5 +162,46 @@ export async function fetchAssignmentsForTeacher() {
     return [];
   } else {
     return data;
+  }
+}
+export async function updateGrade(submissionsToUpdate, assignmentId) {
+  const supabase = await createClient();
+
+  try {
+    console.log("Submissions to update:", submissionsToUpdate);
+    if (!submissionsToUpdate || submissionsToUpdate.length === 0) {
+      console.log("No submissions to update.");
+      return { success: true, message: "No submissions to update." };
+    }
+
+    const updatePromises = submissionsToUpdate.map(
+      (submission) =>
+        supabase
+          .from("assignment_students")
+          .update({
+            grading_data: submission.grading_data,
+            status: "graded",
+          })
+          .match({ id: submission.id, assignment_id: assignmentId }) // This is the crucial fix
+    );
+
+    // Execute all the update promises concurrently.
+    const results = await Promise.all(updatePromises);
+    const firstError = results.find((result) => result.error);
+    if (firstError) {
+      throw new Error(`An update failed: ${firstError.error.message}`);
+    }
+    return {
+      success: true,
+      updated: submissionsToUpdate.length,
+      message: `Successfully updated ${submissionsToUpdate.length} submissions`,
+    };
+  } catch (error) {
+    console.error("Error in batch update:", error);
+    return {
+      success: false,
+      error: error.message,
+      message: "Failed to update grades",
+    };
   }
 }

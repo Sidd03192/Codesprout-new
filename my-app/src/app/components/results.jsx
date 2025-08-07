@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { createClient } from "../../../utils/supabase/client";
+import { Rubric } from "./assignment/rubric";
 const supabase = createClient();
 import {
   Accordion,
@@ -11,14 +12,33 @@ import {
   Spinner,
   Textarea,
   Tooltip,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  useDisclosure,
+  addToast,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  Avatar,
 } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import {
   fetchStudentsForAssignment,
   fetchTestcasesForAssignment,
+  updateGrade,
 } from "../dashboard/api";
-import { ArrowRight, Save, ArrowLeft } from "lucide-react";
-import { Rubric } from "./assignment/rubric";
+import {
+  ArrowRight,
+  Save,
+  ArrowLeft,
+  SquareChartGantt,
+  Clock,
+  ListCheck,
+  MessageSquare,
+} from "lucide-react";
 import { fetchGradingData } from "../student-dashboard/api";
 // --- Helper Components & Icons ---
 
@@ -40,37 +60,144 @@ const CodeBlock = ({ content, language = "text", className = "" }) => {
   );
 };
 
-// --- Reusable Accordion Section ---
-const AccordionSection = ({
-  title,
-  items,
-  itemOverrides,
-  onOverrideChange,
-  viewMode,
-  icon,
-}) => {
-  const [openItems, setOpenItems] = useState({});
+// const FeedbackPanel = ({ feedback, code }) => {
+//   const [activeTab, setActiveTab] = useState("feedback");
+
+//   return (
+//     <div className="lg:col-span-2 bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700 overflow-hidden">
+//       <div className="flex border-b border-slate-700">
+//         <button
+//           onClick={() => setActiveTab("feedback")}
+//           className={`flex-1 p-4 font-semibold text-center border-b-2 transition-colors ${
+//             activeTab === "feedback"
+//               ? "border-emerald-500 text-emerald-400"
+//               : "border-transparent text-slate-400 hover:text-white"
+//           }`}
+//         >
+//           Feedback
+//         </button>
+//       </div>
+//       <div className="p-6">
+//         {activeTab === "feedback" && (
+//           <div>
+//             <div className="flex items-start gap-4">
+//               <Avatar />
+//               <div className="flex-1">
+//                 <p className="font-semibold">{"Mr watson"}</p>
+//                 <div className="mt-2 bg-slate-700/50 p-4 rounded-lg">
+//                   <p>{feedback}</p>
+//                 </div>
+//               </div>
+//             </div>
+//             <div className="mt-6">
+//               <textarea
+//                 className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 focus:ring-2 focus:ring-emerald-500 focus:outline-none transition"
+//                 rows="3"
+//                 placeholder="Provide feedback..."
+//               ></textarea>
+//               <button className="mt-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-semibold transition-colors">
+//                 Submit Feedback
+//               </button>
+//             </div>
+//           </div>
+//         )}
+//       </div>
+//     </div>
+//   );
+// };
+
+const ScoreCard = ({ score, total, date }) => {
+  const percentage = score / total;
+  const percentageText = Math.round(percentage * 100);
+  const ringRef = useRef(null);
+  const radius = 45;
+  const circumference = 2 * Math.PI * radius;
 
   useEffect(() => {
-    const initialOpenState = {};
-    items.forEach((item, index) => {
-      if (item.status === "failed" || item.status === "errored") {
-        initialOpenState[index] = true;
-      }
-    });
-    setOpenItems(initialOpenState);
-  }, [items]);
+    // Animate the ring on load
+    const offset = circumference - percentage * circumference;
+    if (ringRef.current) {
+      ringRef.current.style.strokeDashoffset = offset;
+    }
 
-  const toggleItem = (index) => {
-    setOpenItems((prev) => ({ ...prev, [index]: !prev[index] }));
-  };
+    // Trigger confetti for good scores
+    // if (percentage >= 0.75) {
+    //   setTimeout(() => {
+    //     confetti({
+    //       particleCount: 150,
+    //       spread: 90,
+    //       origin: { y: 0.6 },
+    //     });
+    //   }, 1000);
+    // }
+  }, [score, total, percentage, circumference]);
 
-  const sectionPoints = items.reduce(
-    (acc, item, index) =>
-      acc + (parseFloat(itemOverrides[index]) || item.pointsAchieved),
-    0
+  return (
+    <div className=" flex m-3 gap-6 p-6 items-center justify-between  border border-divider rounded-2xl">
+      <div className="items-center max-w-[60%] ">
+        <h1 className="text-4xl font-bold text-white ">
+          Your Submission Results
+        </h1>
+        <div className="flex w-full items-center justify-start  gap-2">
+          <p className="flex text-xs mt-2 ml-1 text-gray-400 items-center gap-1">
+            {" "}
+            <Clock size={16} /> Graded on: {date}
+          </p>
+        </div>
+      </div>
+      <div className="text-center flex flex-col items-center">
+        <div className="relative w-36 h-36 mb-4">
+          <svg className="w-full h-full" viewBox="0 0 100 100">
+            <circle
+              className="text-slate-700"
+              strokeWidth="10"
+              stroke="currentColor"
+              fill="transparent"
+              r={radius}
+              cx="50"
+              cy="50"
+            />
+            <circle
+              ref={ringRef}
+              className="text-emerald-500"
+              strokeWidth="10"
+              strokeLinecap="round"
+              stroke="currentColor"
+              fill="transparent"
+              r={radius}
+              cx="50"
+              cy="50"
+              style={{
+                transform: "rotate(-90deg)",
+                transformOrigin: "50% 50%",
+                transition:
+                  "stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1)",
+                strokeDasharray: `${circumference} ${circumference}`,
+                strokeDashoffset: circumference,
+              }}
+            />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-4xl font-bold text-white">
+              {percentageText}%
+            </span>
+            <span className="text-slate-400 text-lg">
+              {score} / {total}
+            </span>
+          </div>
+        </div>
+        {/* <h2 className="text-2xl font-bold text-emerald-400">Great Job!</h2>
+        <p className="text-slate-400 mt-1">You passed with a solid score.</p> */}
+      </div>
+    </div>
   );
-  const sectionMaxPoints = items.reduce((acc, item) => acc + item.maxPoints, 0);
+};
+
+// --- Reusable Accordion Section ---
+const AccordionSection = ({ title, items, onPointsChange, viewMode }) => {
+  if (!items || items.length === 0) {
+    return null; // Don't render the section if there are no items
+  }
 
   return (
     <Accordion className="mb-4">
@@ -79,39 +206,26 @@ const AccordionSection = ({
         startContent={
           <Icon icon="lucide-list" className="text-xl text-secondary " />
         }
-        title={
-          <>
-            <h3 className="text-lg font-semibold ">{title}</h3>
-          </>
-        }
+        title={<h3 className="text-lg font-semibold ">{title}</h3>}
       >
         {items.map((item, index) => (
           <Accordion
             isCompact
-            key={index}
-            className="border border-divider  rounded-lg overflow-hidden mb-2"
+            key={item.name || index}
+            className="border border-divider rounded-lg overflow-hidden mb-2"
           >
             <AccordionItem
-              hideIndicator={title != "Test Cases"}
+              hideIndicator={title !== "Test Cases"}
               title={
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between w-full">
                   <div className="flex items-center gap-3">
-                    {item.status === "passed" &&
-                      item.pointsAchieved == item.maxPoints && (
-                        <Icon
-                          icon="lucide-check"
-                          color="green"
-                          className="text-xl"
-                        ></Icon>
-                      )}
-                    {item.pointsAchieved > 0 &&
-                      item.pointsAchieved < item.maxPoints && (
-                        <Icon
-                          icon="lucide-circle-alert"
-                          color="yellow"
-                          className="text-xl"
-                        />
-                      )}
+                    {item.status === "passed" && (
+                      <Icon
+                        icon="lucide-check"
+                        color="green"
+                        className="text-xl"
+                      />
+                    )}
                     {item.status === "failed" && (
                       <Icon icon="lucide-x" color="red" className="text-xl" />
                     )}
@@ -122,20 +236,20 @@ const AccordionSection = ({
                         className="text-xl"
                       />
                     )}
-                    <span className="font-medium ">{item.name}</span>
+                    <span className="font-medium">{item.name}</span>
                   </div>
                   <div className="flex items-center gap-4">
                     {viewMode === "teacher" ? (
-                      <div className="flex items-center gap-2 text-sm">
+                      <div className="flex items-center gap-2 text-sm min-w-fit">
                         <input
                           type="number"
                           max={item.maxPoints}
-                          value={itemOverrides[index] ?? item.pointsAchieved}
+                          value={item.pointsAchieved}
                           onChange={(e) =>
-                            onOverrideChange(index, e.target.value)
+                            onPointsChange(index, e.target.value)
                           }
                           onClick={(e) => e.stopPropagation()}
-                          className="bg-zinc-700/60 border-[.5px] border-zinc-600 rounded-xl max-w-12 p-1 text-center font-semibold focus:border-default "
+                          className="bg-zinc-700/60 border-[.5px] border-zinc-600 rounded-xl max-w-12 p-1 text-center font-semibold focus:border-default"
                         />
                         <span className="text-gray-400">
                           / {item.maxPoints} pts
@@ -146,59 +260,23 @@ const AccordionSection = ({
                         {item.pointsAchieved} / {item.maxPoints} pts
                       </span>
                     )}
-                  </div>{" "}
+                  </div>
                 </div>
               }
             >
-              {title === "Test Cases" && (
-                <div className="p-4 ">
-                  {item.status === "errored" ? (
-                    <div>
-                      <h4 className="font-semibold text-red-300 mb-2">
-                        Error Log
-                      </h4>
-                      <CodeBlock
-                        content={item.message}
-                        className="bg-red-900/40 border border-red-800"
-                      />
-                    </div>
-                  ) : (
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <h4 className="font-semibold  mb-2">Expected Output</h4>
-                        <CodeBlock
-                          className="border border-default-700"
-                          content={item.expected}
-                        />
-                      </div>
-                      <div>
-                        <h4 className="font-semibold  mb-2">
-                          Your Output (Got)
-                        </h4>
-                        <CodeBlock
-                          content={item.actual}
-                          className={
-                            item.status === "failed"
-                              ? "border border-danger"
-                              : "border border-success"
-                          }
-                        />
-                      </div>
-                      {item.status === "failed" && item.message && (
-                        <div className="md:col-span-2">
-                          <h4 className="font-semibold text-yellow-300 mb-2">
-                            Failure Details
-                          </h4>
-                          <CodeBlock
-                            content={item.message}
-                            className="bg-yellow-900/40 border border-yellow-800"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
+              {title === "Test Cases" &&
+                (item.status === "failed" || item.status === "errored") && (
+                  <div className="p-4">
+                    <h4 className="font-semibold text-red-300 mb-2">
+                      {item.status === "errored"
+                        ? "Error Log"
+                        : "Failure Details"}
+                    </h4>
+                    <CodeBlock
+                      content={item.message || "No details available."}
+                    />
+                  </div>
+                )}
             </AccordionItem>
           </Accordion>
         ))}
@@ -212,289 +290,330 @@ const GradingResults = ({
   viewMode,
   student,
   rubricData,
-  setCurrentView,
+  setChangedSubmissionIds,
+  handleSaveSession,
   nextStudent,
+  onOpen,
+  onStudentUpdate, // Changed prop name from onStudentUpdate to setSelected
 }) => {
-  if (viewMode === "teacher") {
-    if (!student) {
-      console.error("No student selected for grading.");
+  grading_data = viewMode === "teacher" ? student?.grading_data : grading_data;
+
+  const [feedback, setFeedback] = useState("");
+  const [overallOverrideScore, setOverallOverrideScore] = useState("");
+  const [testResults, setTestResults] = useState([]);
+  const [stylingResults, setStylingResults] = useState([]);
+  const [requirementsResults, setRequirementsResults] = useState([]);
+
+  useEffect(() => {
+    if (!grading_data || !rubricData) {
+      console.log("missing data");
     }
-    grading_data = student?.grading_data;
-  }
-  const [feedback, setFeedback] = useState(grading_data?.teacherFeedback || "");
-  const [overallOverrideScore, setOverallOverrideScore] = useState(
-    grading_data.gradeOverride != null ? String(grading_data.gradeOverride) : ""
-  );
-  const [rubricContent, setRubricContent] = useState(grading_data.rubric || "");
-  const [testPointOverrides, setTestPointOverrides] = useState({});
-  const [stylingPointOverrides, setStylingPointOverrides] = useState({});
-  const [reqPointOverrides, setReqPointOverrides] = useState({});
 
-  const stylingResults = useMemo(() => {
-    return (
-      rubricData?.stylingCriteria?.map((item) => ({
-        name: item.name,
-        maxPoints: item.maxPoints,
-        pointsAchieved: 0, // Default value
-        status: "ungraded",
-        message: "",
-        expected: "",
-        actual: "",
-      })) || []
+    setFeedback(grading_data.teacherFeedback || "");
+    setOverallOverrideScore(
+      grading_data.gradeOverride != null
+        ? String(grading_data.gradeOverride)
+        : ""
     );
-  }, [rubricData, grading_data.stylingResults]);
 
-  const requirementsResults = useMemo(() => {
-    return (
-      rubricData?.requirementsCriteria?.map((item) => ({
-        name: item.name,
-        maxPoints: item.maxPoints,
-        pointsAchieved: 0, // Default value
-        status: "ungraded",
-        message: "",
-        expected: "",
-        actual: "",
-      })) ||
-      grading_data.requirementsResults ||
-      []
+    const initialTestResults = (grading_data.testResults || []).map(
+      (result) => {
+        const rubricItem = (rubricData.testcases || []).find(
+          (item) => item.name === result.name
+        );
+        return {
+          ...result,
+          maxPoints: rubricItem
+            ? Number(rubricItem.maxPoints)
+            : result.maxPoints,
+        };
+      }
     );
-  }, [rubricData, grading_data.requirementsResults]);
+    setTestResults(initialTestResults);
 
-  const testResults = useMemo(() => {
-    if (!rubricData?.testCaseCriteria) {
-      return grading_data.testResults || [];
-    }
-    return (grading_data.testResults || []).map((result) => {
-      const rubricItem = rubricData.testCaseCriteria.find(
-        (item) => item.name === result.name
+    const initializeManualResults = (rubricItems, existingResults) => {
+      if (!rubricItems) return existingResults || [];
+      return rubricItems.map((item) => {
+        const existing = (existingResults || []).find(
+          (res) => res.name === item.name
+        );
+        return (
+          existing || {
+            name: item.name,
+            maxPoints: item.maxPoints,
+            pointsAchieved: 0,
+            status: "ungraded",
+          }
+        );
+      });
+    };
+
+    setStylingResults(
+      initializeManualResults(
+        rubricData.rubric?.[0]?.items,
+        grading_data.stylingResults
+      )
+    );
+    setRequirementsResults(
+      initializeManualResults(
+        rubricData.rubric?.[1]?.items,
+        grading_data.requirementsResults
+      )
+    );
+  }, [student, grading_data, rubricData]);
+
+  const updateStudentGradingData = (updates) => {
+    if (viewMode !== "teacher" || !student) return;
+
+    const currentTestResults = updates.testResults || testResults;
+    const currentStylingResults = updates.stylingResults || stylingResults;
+    const currentRequirementsResults =
+      updates.requirementsResults || requirementsResults;
+    const currentFeedback =
+      "teacherFeedback" in updates ? updates.teacherFeedback : feedback;
+    const currentOverride =
+      "gradeOverride" in updates ? updates.gradeOverride : overallOverrideScore;
+
+    const calculatedTotalPoints = [
+      ...currentTestResults,
+      ...currentStylingResults,
+      ...currentRequirementsResults,
+    ].reduce((sum, item) => sum + (item.pointsAchieved || 0), 0);
+
+    const gradeOverride =
+      currentOverride !== "" && !isNaN(parseFloat(currentOverride))
+        ? parseFloat(currentOverride)
+        : null;
+
+    const updatedGradingData = {
+      ...student.grading_data,
+      testResults: currentTestResults,
+      stylingResults: currentStylingResults,
+      requirementsResults: currentRequirementsResults,
+      teacherFeedback: currentFeedback,
+      gradeOverride,
+      gradedAt: new Date().toISOString(),
+      totalPointsAchieved: gradeOverride ?? calculatedTotalPoints,
+    };
+
+    const updatedStudent = {
+      ...student,
+      grading_data: updatedGradingData,
+    };
+
+    // Call the parent's state setter, which is now correctly named 'setSelected'
+    onStudentUpdate(updatedStudent);
+
+    setChangedSubmissionIds((prev) => new Set(prev).add(student.id));
+  };
+
+  const handlePointsChange = (sectionType, index, value) => {
+    const numericValue = parseFloat(value);
+    const updater = (prevItems) =>
+      prevItems.map((item, i) =>
+        i === index
+          ? { ...item, pointsAchieved: isNaN(numericValue) ? 0 : numericValue }
+          : item
       );
-      return {
-        ...result,
-        maxPoints: rubricItem ? Number(rubricItem.maxPoints) : result.maxPoints,
-      };
-    });
-  }, [grading_data.testResults, rubricData]);
+
+    let updates = {};
+    if (sectionType === "styling") {
+      const newStylingResults = updater(stylingResults);
+      setStylingResults(newStylingResults);
+      updates.stylingResults = newStylingResults;
+    }
+    if (sectionType === "requirements") {
+      const newRequirementsResults = updater(requirementsResults);
+      setRequirementsResults(newRequirementsResults);
+      updates.requirementsResults = newRequirementsResults;
+    }
+    if (sectionType === "test") {
+      const newTestResults = updater(testResults);
+      setTestResults(newTestResults);
+      updates.testResults = newTestResults;
+    }
+
+    updateStudentGradingData(updates);
+  };
+
+  const handleFeedbackChange = (newFeedback) => {
+    setFeedback(newFeedback);
+    updateStudentGradingData({ teacherFeedback: newFeedback });
+  };
+
+  const handleOverrideScoreChange = (newScore) => {
+    setOverallOverrideScore(newScore);
+    updateStudentGradingData({ gradeOverride: newScore });
+  };
+
+  const handleSave = () => {
+    handleSaveSession();
+  };
 
   const calculatedTotalPoints = useMemo(() => {
-    const sumPoints = (items, overrides) =>
-      items.reduce((acc, item, index) => {
-        const overriddenValue = parseFloat(overrides[index]);
-        return (
-          acc + (isNaN(overriddenValue) ? item.pointsAchieved : overriddenValue)
-        );
-      }, 0);
-
-    const testPoints = sumPoints(testResults, testPointOverrides);
-    const stylingPoints = sumPoints(stylingResults, stylingPointOverrides);
-    const reqPoints = sumPoints(requirementsResults, reqPointOverrides);
-
-    return testPoints + stylingPoints + reqPoints;
-  }, [
-    testResults,
-    stylingResults,
-    requirementsResults,
-    testPointOverrides,
-    stylingPointOverrides,
-    reqPointOverrides,
-  ]);
-
-  const maxTotalPoints = useMemo(() => {
-    return [...testResults, ...stylingResults, ...requirementsResults].reduce(
-      (acc, item) => acc + (item.maxPoints || 0),
-      0
-    );
+    return [
+      ...(testResults || []),
+      ...(stylingResults || []),
+      ...(requirementsResults || []),
+    ].reduce((acc, item) => acc + (item.pointsAchieved || 0), 0);
   }, [testResults, stylingResults, requirementsResults]);
 
-  // --- MODIFICATION START ---
+  const maxTotalPoints = useMemo(() => {
+    return [
+      ...(testResults || []),
+      ...(stylingResults || []),
+      ...(requirementsResults || []),
+    ].reduce((acc, item) => acc + (Number(item.maxPoints) || 0), 0);
+  }, [testResults, stylingResults, requirementsResults]);
+
   const finalScore =
     overallOverrideScore !== "" && !isNaN(parseFloat(overallOverrideScore))
       ? parseFloat(overallOverrideScore)
       : calculatedTotalPoints;
-  // --- MODIFICATION END ---
-
-  const scorePercentage =
-    maxTotalPoints > 0 ? (finalScore / maxTotalPoints) * 100 : 0;
-
-  const getStatusBadge = () => {
-    if (grading_data.error) {
-      return (
-        <span className="inline-block bg-red-800 text-red-200 text-xs font-semibold px-2.5 py-1 rounded-full">
-          Error
-        </span>
-      );
-    }
-    if (scorePercentage >= 80) {
-      return (
-        <span className="inline-block bg-green-800 text-green-200 text-xs font-semibold px-2.5 py-1 rounded-full">
-          Passed
-        </span>
-      );
-    }
-    if (scorePercentage > 0) {
-      return (
-        <span className="inline-block bg-yellow-800 text-yellow-200 text-xs font-semibold px-2.5 py-1 rounded-full">
-          Partial Credit
-        </span>
-      );
-    }
-    return (
-      <span className="inline-block bg-red-800 text-red-200 text-xs font-semibold px-2.5 py-1 rounded-full">
-        Failed
-      </span>
-    );
-  };
 
   return (
-    <div className="font-sans  mx-auto">
-      {/* Header */}
-      <div className="p-6 flex justify-between items-start">
-        <div>
-          <h2 className="text-3xl font-bold text-gray-100">
-            {student.name + "'s Submission"}
-          </h2>
-          <p className="text-sm text-gray-400 mt-1 ml-1">
-            Graded on: {new Date(grading_data.gradedAt).toLocaleString()}
-          </p>
-        </div>
-        <div className="text-right">
-          <div className="flex items-center gap-2 justify-end">
-            <div className="text-3xl font-bold \">
-              {viewMode === "teacher" ? (
-                <div className="flex items-baseline ">
-                  <input
-                    type="number"
-                    max={maxTotalPoints}
-                    value={overallOverrideScore}
-                    onChange={(e) => setOverallOverrideScore(e.target.value)}
-                    onClick={(e) => e.stopPropagation()}
-                    placeholder={calculatedTotalPoints.toFixed(0)}
-                    className="bg-zinc-700/60 border-[.5px] border-zinc-600 rounded-xl max-w-20 p-1 text-center font-semibold focus:border-default mr-2 "
-                  />
-                  <span className="text-xl \">/ {maxTotalPoints}</span>
-                </div>
-              ) : (
-                <div className="text-3xl font-bold \">
-                  {finalScore.toFixed(2)}{" "}
-                  <span className="text-xl \">/ {maxTotalPoints}</span>
-                </div>
-              )}
-            </div>
+    <div className="font-sans mx-auto">
+      {viewMode == "student" && (
+        <ScoreCard
+          score={finalScore}
+          total={maxTotalPoints}
+          date={new Date(grading_data?.gradedAt).toLocaleString()}
+        />
+      )}
+      {viewMode === "teacher" && (
+        <div className="p-6 flex justify-between items-start">
+          <div>
+            <h2 className="text-3xl font-bold text-gray-100">
+              {student?.name
+                ? student?.name || +"'s Submission"
+                : "Your Submission"}
+            </h2>
+            <p className="text-xs mt-1 ml-1 text-gray-400 mt-1 ml-1">
+              Graded on: {new Date(grading_data?.gradedAt).toLocaleString()}
+            </p>
           </div>
-          <div className="mt-2">{getStatusBadge()}</div>
-        </div>
-      </div>
 
-      {/* Main Content */}
-      <div className="px-6">
-        {/* ... (rest of the component remains the same) ... */}
-        {grading_data.error && (
-          <div className="bg-red-900/50 border border-red-700 p-4 rounded-lg mb-6">
-            <h3 className="font-bold text-red-300">Compilation Error</h3>
-            <CodeBlock
-              content={grading_data.error}
-              className="mt-2 bg-red-900/70"
-            />
-          </div>
-        )}
-
-        {viewMode === "teacher" && (
-          <div className="">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold mb-2 ">Teacher Controls</h3>
-            </div>
-
-            <div className="">
-              <div className=" ">
-                <label className="block text-md font-medium  ">Feedback</label>
-                <Textarea
-                  value={feedback}
-                  onChange={(e) => setFeedback(e.target.value)}
-                  placeholder="Provide feedback..."
-                  variant="bordered"
-                  size="lg"
-                  className="w-full p-4 ounded-lg  min-h-32 text-xl"
-                />
+          <div className="text-right">
+            <div className="flex items-center gap-2 justify-end">
+              <div className="text-3xl font-bold">
+                {viewMode === "teacher" ? (
+                  <div className="flex items-baseline">
+                    <input
+                      type="number"
+                      max={maxTotalPoints}
+                      value={overallOverrideScore}
+                      onChange={(e) =>
+                        handleOverrideScoreChange(e.target.value)
+                      }
+                      onClick={(e) => e.stopPropagation()}
+                      placeholder={calculatedTotalPoints.toFixed(0)}
+                      className="bg-zinc-700/60 border-[.5px] border-zinc-600 rounded-xl max-w-20 p-1 text-center font-semibold focus:border-default mr-2"
+                    />
+                    <span className="text-xl">/ {maxTotalPoints}</span>
+                  </div>
+                ) : (
+                  <div className="text-3xl font-bold">
+                    {finalScore.toFixed(2)}{" "}
+                    <span className="text-xl">/ {maxTotalPoints}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      <div className="px-6">
+        {grading_data?.error && (
+          <div className="bg-red-900/50 border border-red-700 p-4 rounded-lg mb-6">
+            <h3 className="font-bold text-red-300">Compilation Error</h3>
+            <CodeBlock content={grading_data.error} />
+          </div>
         )}
 
-        {viewMode === "student" && grading_data.teacherFeedback && (
-          <div className="mb-8 bg-zinc-800/30 border border-divider p-4 rounded-lg">
-            <h3 className="text-lg font-semibold mb-2">
-              Feedback from Instructor
+        <div className="mb-2">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="block text-center items-center flex gap-2 text-xl mb-1 font-semibold">
+              <MessageSquare size={20} /> Feedback
             </h3>
-            <p className="whitespace-pre-wrap">
-              {grading_data.teacherFeedback}
-            </p>
+            {viewMode === "teacher" && (
+              <Button
+                radius="sm"
+                variant="flat"
+                color="secondary"
+                onPress={onOpen}
+              >
+                <SquareChartGantt size={16} /> Edit Rubric
+              </Button>
+            )}
           </div>
-        )}
+          <Textarea
+            value={feedback || grading_data?.teacherFeedback}
+            onChange={(e) => handleFeedbackChange(e.target.value)}
+            isReadOnly={viewMode === "student"}
+            placeholder="Provide feedback..."
+            variant="bordered"
+            size="lg"
+            className="w-full min-h-32 text-xl"
+          />
+        </div>
 
-        {viewMode === "student" && rubricContent && (
-          <div className="mb-8 bg-gray-zinc/30 border border-divider p-4 rounded-lg">
-            <h3 className="text-lg font-semibold mb-2 text-gray-200">
-              Grading Rubric
-            </h3>
-            <p className="text-gray-300 whitespace-pre-wrap">{rubricContent}</p>
-          </div>
-        )}
-        {viewMode === "teacher" && (
-          <div className="flex justify-between items-center  mb-4">
-            <label className="block text-lg font-medium  mb-1">Testcases</label>
-            <Button variant="flat" color="primary">
-              View Raw Logs
-            </Button>
-          </div>
-        )}
+        <h3 className="text-xl w-full flex gap-2 items-center font-semibold mb-4 ">
+          <ListCheck size={20} /> Grading Breakdown
+        </h3>
 
+        {/* <FeedbackPanel feedback={"some feedback"} code={"some code"} /> */}
         <AccordionSection
           title="Test Cases"
-          items={grading_data.testResults}
-          itemOverrides={testPointOverrides}
-          onOverrideChange={(index, value) =>
-            setTestPointOverrides((prev) => ({ ...prev, [index]: value }))
+          items={testResults}
+          onPointsChange={(index, value) =>
+            handlePointsChange("test", index, value)
           }
           viewMode={viewMode}
-          icon="test-tube"
         />
         <AccordionSection
           title="Styling"
           items={stylingResults}
-          itemOverrides={stylingPointOverrides}
-          onOverrideChange={(index, value) =>
-            setStylingPointOverrides((prev) => ({ ...prev, [index]: value }))
+          onPointsChange={(index, value) =>
+            handlePointsChange("styling", index, value)
           }
           viewMode={viewMode}
-          icon="braces"
         />
         <AccordionSection
           title="Requirements"
           items={requirementsResults}
-          itemOverrides={reqPointOverrides}
-          onOverrideChange={(index, value) =>
-            setReqPointOverrides((prev) => ({ ...prev, [index]: value }))
+          onPointsChange={(index, value) =>
+            handlePointsChange("requirements", index, value)
           }
           viewMode={viewMode}
-          icon="list-check"
         />
 
-        <div className="flex items-center justify-between  py-5 mb-10">
-          <Button
-            variant="flat"
-            color="secondary"
-            onPress={() => setCurrentView("rubric")}
-          >
-            <ArrowLeft size={16} /> Rubric
-          </Button>
-          <div className=" flex  gap-2">
-            <Button variant="flat" color="primary">
-              <Save size={16} />
-              Save Session
-            </Button>
-            <Button variant="flat" color="secondary" onPress={nextStudent}>
-              Next
-              <ArrowRight size={16} />
-            </Button>
+        <div className="flex items-center justify-end py-5 mb-10">
+          <div className="flex gap-2">
+            {viewMode === "teacher" ? (
+              <>
+                <Button
+                  variant="flat"
+                  radius="sm"
+                  color="primary"
+                  onPress={handleSave}
+                >
+                  <Save size={16} />
+                  Save Session
+                </Button>
+                <Button
+                  variant="flat"
+                  radius="sm"
+                  color="secondary"
+                  onPress={nextStudent}
+                >
+                  Next
+                  <ArrowRight size={16} />
+                </Button>
+              </>
+            ) : (
+              <></>
+            )}
           </div>
         </div>
       </div>
@@ -585,13 +704,26 @@ const StudentScrollSection = ({ students, selected, setSelected }) => {
   );
 };
 // --- Example Usage Wrapper ---
-export const Results = ({ editorRef, role, rubric, id }) => {
-  const [grading_data, setGrading_data] = useState();
-  const students = rubric?.students || [];
+export const Results = ({ editorRef, role, rubric, id, gradingData }) => {
+  const [grading_data, setGrading_data] = useState(gradingData);
+  const [students, setStudents] = useState(rubric?.students || []);
   const testcases = rubric?.testcases || [];
-  const [rubricData, setRubricData] = useState(rubric.rubric);
+  const [rubricData, setRubricData] = useState(rubric || []);
   const [selected, setSelected] = useState(students[0] || null);
+  const [changedSubmitionIds, setChangedSubmitionIds] = useState(new Set());
+  console.log(gradingData);
+  const handleStudentUpdate = (updatedStudent) => {
+    // Update the master list of students
+    setStudents((currentStudents) =>
+      currentStudents.map((s) =>
+        s.id === updatedStudent.id ? updatedStudent : s
+      )
+    );
+    // Also update the currently selected student to ensure the UI is in sync
+    setSelected(updatedStudent);
+  };
 
+  //]
   // // edit testcases based on rubric
   // useEffect(() => {
   //   if (rubricData?.testCaseCriteria) {
@@ -616,6 +748,7 @@ export const Results = ({ editorRef, role, rubric, id }) => {
   // }, [rubricData]);
 
   const [currentView, setCurrentView] = useState("grading");
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   const setNextSelected = () => {
     const currentIndex = students.findIndex(
@@ -631,6 +764,34 @@ export const Results = ({ editorRef, role, rubric, id }) => {
     );
   }, [selected]);
 
+  const handleSaveSession = async () => {
+    const submissionsToUpdate = students.filter((student) =>
+      changedSubmitionIds.has(student.id)
+    );
+    console.log("submitssions to update:", submissionsToUpdate);
+    const result = await updateGrade(submissionsToUpdate, id);
+    if (result.success) {
+      console.log("successfully updated grades");
+      addToast({
+        title: "Updated Grades!",
+        description: "You may safely exit this page.",
+        status: "success",
+        color: "success",
+        variant: "bordered",
+        duration: 3000,
+      });
+    } else {
+      console.error("Error updating grades:", result.error);
+      addToast({
+        title: "Failed to Update Grades",
+        description: "Please do not exit this page. Report this error",
+        status: "danger",
+        color: "danger",
+        variant: "bordered",
+        duration: 3000,
+      });
+    }
+  };
   return (
     <div className=" pb-10 h-full overflow-auto  custom-scrollbar ">
       {currentView === "grading" && role === "teacher" && (
@@ -640,25 +801,54 @@ export const Results = ({ editorRef, role, rubric, id }) => {
           setSelected={setSelected}
         />
       )}
-      {(selected && currentView === "grading" && rubricData) || (
+      {(selected && currentView === "grading" && rubricData) ||
+      (role === "student" && rubricData && grading_data) ? (
         <GradingResults
           nextStudent={setNextSelected}
           student={selected}
           rubricData={rubricData}
-          grading_data={grading_data} // get data from
+          grading_data={grading_data} // This prop name seems inconsistent, might need review
           viewMode={role}
           setCurrentView={setCurrentView}
+          onOpen={onOpen}
+          onOpenChange={onOpenChange}
+          setChangedSubmissionIds={setChangedSubmitionIds}
+          handleSaveSession={handleSaveSession}
+          onStudentUpdate={handleStudentUpdate} // Pass the new handler
         />
-      )}
-      {/* {currentView === "rubric" && (
-        <>
-          <Rubric
-            testcases={testcases}
-            setRubricData={setRubricData}
-            setDisplayNext={setCurrentView}
-          />
-        </>
-      )} */}
+      ) : null}
+      <Modal
+        isOpen={isOpen}
+        onOpenChange={onOpenChange}
+        size="2xl"
+        scrollBehavior="inside"
+      >
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">
+                Rubric Editor
+              </ModalHeader>
+              <ModalBody>
+                <Rubric
+                  testcases={testcases}
+                  students={students}
+                  rubric={rubricData.rubric}
+                  setRubric={setRubricData}
+                />
+              </ModalBody>
+              <ModalFooter>
+                <Button color="danger" variant="light" onPress={onClose}>
+                  Close
+                </Button>
+                <Button color="primary" onPress={onClose}>
+                  Action
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </div>
   );
 };

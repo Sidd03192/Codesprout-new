@@ -49,15 +49,21 @@ export default async function AssignmentPage({ params }) {
         fetchStudentsForAssignment(assignmentId),
         fetchRubricDataForAssignment(assignmentId),
       ]);
+
+      // Safely get the first object from the fetchedRubricData array
+      const rubricDataObject = fetchedRubricData?.[0];
+
       return {
         students: fetchedStudents || [],
-        testcases: fetchedRubricData?.testcases[0]?.testcases || [],
-        rubric: fetchedRubricData?.rubric || [],
+        // Access the 'testcases' property from the object
+        testcases: rubricDataObject?.testcases || [],
+        // Access the 'rubric' property from the object
+        rubric: rubricDataObject?.rubric || [],
       };
     } catch (error) {
       console.error("Failed to fetch initial data:", error);
-      // Return empty arrays on error
-      return { students: [], testcases: [] };
+      // Return empty arrays on error for consistency
+      return { students: [], testcases: [], rubric: [] };
     }
   };
   const rubricData = await fetchGradingData(id);

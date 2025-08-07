@@ -11,196 +11,236 @@ import {
 import React, { useState, useMemo, useEffect } from "react";
 
 // --- Main App Component (Contains all logic) ---
-export const Rubric = ({ testcases, setRubricData, setDisplayNext }) => {
+export const Rubric = ({
+  testcases,
+  setRubricData,
+  setDisplayNext,
+  rubric,
+}) => {
   // --- State Management ---
-  const [autogradeStyles, setAutogradeStyles] = useState(false);
-  const [autogradeRequirements, setAutogradeRequirements] = useState(false);
-  const [testCaseItems, setTestCaseItems] = useState(testcases || []);
-  const [stylingItems, setStylingItems] = useState([
-    { id: "style_1", name: "", maxPoints: 0 },
-  ]);
-  const [requirementsItems, setRequirementsItems] = useState([
-    { id: "req_1", name: "", maxPoints: 0 },
-  ]);
-  // --- Reusable Logic for Sections (kept inside the main component) ---
-  const createSectionHandlers = (items, setItems) => ({
-    handleAddItem: () => {
-      setItems([
-        ...items,
-        { id: `item_${Date.now()}`, name: "", maxPoints: 5 },
-      ]);
-    },
-    handleDeleteItem: (id) => {
-      setItems(items.filter((item) => item.id !== id));
-    },
-    handleItemChange: (id, field, value) => {
-      setItems(
-        items.map((item) =>
-          item.id === id ? { ...item, [field]: value } : item
-        )
-      );
-    },
-    sectionTotalPoints: useMemo(() => {
-      return items.reduce(
-        (total, item) => total + (Number(item.maxPoints) || 0),
-        0
-      );
-    }, [items]),
-  });
-  const testCaseHandlers = createSectionHandlers(
-    testCaseItems,
-    setTestCaseItems
-  );
-  const stylingHandlers = createSectionHandlers(stylingItems, setStylingItems);
-  const requirementsHandlers = createSectionHandlers(
-    requirementsItems,
-    setRequirementsItems
-  );
-  // local data storage.
-  const sections = [
+  const [sections, setSections] = useState([
     {
-      id: 1,
+      id: "section_1_tests",
       title: "Automated Test Cases",
-      items: testCaseItems,
-      handlers: testCaseHandlers,
+      items: [],
       isNameEditable: false,
       canAddItems: false,
-      stateName: "autogradeTestCases",
+      autograde: true, // Test cases are always autograded
     },
     {
-      id: 2,
+      id: "section_2_styling",
       title: "Styling Criteria",
-      items: stylingItems,
-      handlers: stylingHandlers,
+      items: [{ id: "style_1", name: "", maxPoints: 5 }],
       isNameEditable: true,
       canAddItems: true,
-      stateName: "autogradeStyles",
+      autograde: false, // Default to manual grading
     },
     {
-      id: 3,
+      id: "section_3_requirements",
       title: "Functional Requirements",
-      items: requirementsItems,
-      handlers: requirementsHandlers,
+      items: [{ id: "req_1", name: "", maxPoints: 5 }],
       isNameEditable: true,
       canAddItems: true,
+      autograde: false, // Default to manual grading
     },
-  ];
+  ]);
 
-  // update testcases once they exist. ( extract data from them )
+  // --- Data Loading Effect ---
+  // This effect runs when the component mounts or when the `rubric` or `testcases` props change.
+  // It correctly populates the editor for both new and existing rubrics.
   useEffect(() => {
-    const parsedTestCases = testcases?.map((test, index) => {
-      let points = 1; // Default points
-      let cleanName = test;
+    // If an existing rubric structure is passed in, load it into state.
+    if (rubric?.rubric) {
+      setSections(rubric.rubric);
+    } else if (testcases) {
+      // If it's a new rubric, parse the initial testcases from the prop.
+      const parsedTestCases = testcases.map((test) => {
+        const match = test.match(/_Points_(\d+)$/);
+        const points = match ? parseInt(match[1], 10) : 1;
+        const cleanName = match ? test.substring(0, match.index) : test;
+        return {
+          id: test,
+          name: cleanName.replace(/_/g, " "),
+          maxPoints: points,
+        };
+      });
 
-      const match = test.match(/_Points_(\d+)$/);
-      if (match) {
-        points = parseInt(match[1], 10);
-        cleanName = test.substring(0, match.index);
-      }
+      // Update only the test case section in the state.
+      setSections((currentSections) =>
+        currentSections.map((section) =>
+          section.id === "section_1_tests"
+            ? { ...section, items: parsedTestCases }
+            : section
+        )
+      );
+    }
+  }, [rubric, testcases]);
 
-      return {
-        id: test,
-        name: cleanName.replace(/_/g, " "), // Make it more readable
-        maxPoints: points,
-      };
-    });
-    setTestCaseItems(parsedTestCases);
-  }, [testcases]); // Note: In a real app, you'd pass mockAutograderTests in the dependency array if it could change.
+  // --- Centralized Handler Functions ---
+  // All logic for modifying the state now lives here.
 
-  const grandTotalPoints = useMemo(() => {
-    const sumPoints = (items) =>
-      items.reduce((total, item) => total + (Number(item.maxPoints) || 0), 0);
-    return (
-      sumPoints(testCaseItems) +
-      sumPoints(stylingItems) +
-      sumPoints(requirementsItems)
+  const handleAddItem = (sectionId) => {
+    setSections((current) =>
+      current.map((section) => {
+        if (section.id === sectionId) {
+          const newItem = { id: `item_${Date.now()}`, name: "", maxPoints: 5 };
+          return { ...section, items: [...section.items, newItem] };
+        }
+        return section;
+      })
     );
-  }, [testCaseItems, stylingItems, requirementsItems]);
+  };
 
-  // --- Event Handlers ---
+  const handleDeleteItem = (sectionId, itemId) => {
+    setSections((current) =>
+      current.map((section) => {
+        if (section.id === sectionId) {
+          return {
+            ...section,
+            items: section.items.filter((item) => item.id !== itemId),
+          };
+        }
+        return section;
+      })
+    );
+  };
+
+  const handleItemChange = (sectionId, itemId, field, value) => {
+    setSections((current) =>
+      current.map((section) => {
+        if (section.id === sectionId) {
+          return {
+            ...section,
+            items: section.items.map((item) =>
+              item.id === itemId ? { ...item, [field]: value } : item
+            ),
+          };
+        }
+        return section;
+      })
+    );
+  };
+
+  const handleToggleAutograde = (sectionId) => {
+    setSections((current) =>
+      current.map((section) =>
+        section.id === sectionId
+          ? { ...section, autograde: !section.autograde }
+          : section
+      )
+    );
+  };
 
   const handleSaveRubric = () => {
-    const rubricData = {
-      testCaseCriteria: testCaseItems,
-      stylingCriteria: stylingItems,
-      requirementsCriteria: requirementsItems,
+    const dataToSave = {
+      // Create the flat criteria lists that the GradingResults component expects.
+      testCaseCriteria:
+        sections.find((s) => s.id === "section_1_tests")?.items || [],
+      stylingCriteria:
+        sections.find((s) => s.id === "section_2_styling")?.items || [],
+      requirementsCriteria:
+        sections.find((s) => s.id === "section_3_requirements")?.items || [],
+      // Also include the full sections object for re-editing.
+      rubric: sections,
     };
-    console.log("Saving rubric data:", rubricData);
-    setRubricData(rubricData);
+
+    // Preserve other top-level keys from the original rubric prop (like 'students').
+    const finalData = {
+      ...rubric,
+      ...dataToSave,
+    };
+
+    setRubricData(finalData);
     setDisplayNext("grading");
   };
 
+  // --- Memoized Calculations ---
+  const grandTotalPoints = useMemo(() => {
+    return sections.reduce((total, section) => {
+      const sectionTotal = section.items.reduce(
+        (subTotal, item) => subTotal + (Number(item.maxPoints) || 0),
+        0
+      );
+      return total + sectionTotal;
+    }, 0);
+  }, [sections]);
+
   return (
-    <div className="bg-transparent min-h-screen flex flex-col items-center p-6 pt-4 font-sans sticky">
-      {/* --- Main Rubric Creator UI --- */}
-      <div className=" text-white rounded-lg w-full max-w-5xl mx-auto">
-        <div className="">
-          <div className="flex justify-between items-center">
-            <h2 className="text-3xl font-bold">Rubric Editor</h2>
-            <div className="text-right">
-              <p className="text-3xl font-bold ">{grandTotalPoints}</p>
-              <p className="text-sm text-gray-400">Total Possible Points</p>
-            </div>
+    <div className="bg-transparent min-h-screen flex flex-col items-center p-6 pt-4 font-sans">
+      <div className="text-white rounded-lg w-full max-w-5xl mx-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-3xl font-bold">Rubric Editor</h2>
+          <div className="text-right">
+            <p className="text-3xl font-bold">{grandTotalPoints}</p>
+            <p className="text-sm text-gray-400">Total Possible Points</p>
           </div>
         </div>
 
-        <div className="p-6 space-y-8">
-          {sections.map((section, sectionIndex) => (
-            <div
-              key={section.title}
-              className="bg-gray-zinc/50 p-6 rounded-xl border border-divider"
-            >
-              <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-xl font-semibold">{section.title}</h3>
-                  {section.canAddItems && (
-                    <Chip
-                      size="sm"
-                      color="primary"
-                      variant="flat"
-                      className="w-fit flex "
-                    >
-                      <WandIcon className="mr-2" size={6} />
-                      Autograde
-                    </Chip>
-                  )}
+        <div className="space-y-8">
+          {sections.map((section) => {
+            const sectionTotalPoints = section.items.reduce(
+              (total, item) => total + (Number(item.maxPoints) || 0),
+              0
+            );
+
+            return (
+              <div
+                key={section.id}
+                className="bg-gray-zinc/50 p-6 rounded-xl border border-divider"
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xl font-semibold">{section.title}</h3>
+                    {section.id !== "section_1_tests" && (
+                      <Chip
+                        size="sm"
+                        color={section.autograde ? "secondary" : "default"}
+                        variant="flat"
+                        className="cursor-pointer"
+                        onPress={() => handleToggleAutograde(section.id)}
+                      >
+                        {section.autograde ? (
+                          <div className="flex items-center">
+                            <WandIcon className="mr-2" size={16} />
+                            Autograde
+                          </div>
+                        ) : (
+                          <div className="flex items-center">
+                            <PenTool className="mr-2" size={16} />
+                            Manual
+                          </div>
+                        )}
+                      </Chip>
+                    )}
+                  </div>
+                  <span className="text-lg font-bold text-gray-300">
+                    {sectionTotalPoints} pts
+                  </span>
                 </div>
 
-                <span className="text-lg font-bold text-gray-300">
-                  {section.handlers.sectionTotalPoints} pts
-                </span>
-              </div>
-              <div className="space-y-2 ">
-                {section.items.length > 0 ? (
-                  section.items.map((item, itemIndex) => (
-                    <div className="">
+                <div className="space-y-2">
+                  {section.items.map((item) => (
+                    <div key={item.id}>
                       <Input
                         type="text"
-                        className="text- font-bold "
                         variant="bordered"
                         size="lg"
                         placeholder="Criterion description..."
                         value={item.name}
                         isReadOnly={!section.isNameEditable}
-                        onValueChange={
-                          section.isNameEditable
-                            ? (value) =>
-                                section.handlers.handleItemChange(
-                                  item.id,
-                                  "name",
-                                  value
-                                )
-                            : undefined
+                        onValueChange={(value) =>
+                          handleItemChange(section.id, item.id, "name", value)
                         }
                         endContent={
                           <>
                             <div className="py-2 flex items-center gap-0">
                               <input
-                                className="bg-zinc-700/60 border-[.5px] border-zinc-600 h-[30px] rounded-xl max-w-12 text-center font-semibold focus:border-default mr-2 "
+                                className="bg-zinc-700/60 border-[.5px] border-zinc-600 h-[30px] rounded-xl max-w-12 text-center font-semibold focus:border-default mr-2"
                                 type="number"
-                                value={item.maxPoints ? item.maxPoints : 0}
+                                value={item.maxPoints || 0}
                                 onChange={(e) =>
-                                  section.handlers.handleItemChange(
+                                  handleItemChange(
+                                    section.id,
                                     item.id,
                                     "maxPoints",
                                     e.target.value
@@ -211,13 +251,10 @@ export const Rubric = ({ testcases, setRubricData, setDisplayNext }) => {
                             {section.canAddItems &&
                               section.items.length > 1 && (
                                 <button
-                                  variant="light"
                                   onClick={() =>
-                                    section.handlers.handleDeleteItem(item.id)
+                                    handleDeleteItem(section.id, item.id)
                                   }
-                                  className="
-                                  ml-0 p-2 rounded-full hover:bg-red-600/30"
-                                  color="danger"
+                                  className="ml-0 p-2 rounded-full hover:bg-red-600/30"
                                 >
                                   <Trash2 size={16} color="red" />
                                 </button>
@@ -226,36 +263,31 @@ export const Rubric = ({ testcases, setRubricData, setDisplayNext }) => {
                         }
                       />
                     </div>
-                  ))
-                ) : (
-                  <div className="text-gray-400 text-center py-4">
-                    No items in this section. You can add one below.
+                  ))}
+                </div>
+
+                {section.canAddItems && (
+                  <div className="mt-4">
+                    <Button
+                      onClick={() => handleAddItem(section.id)}
+                      variant="flat"
+                      color="primary"
+                    >
+                      <Plus size={16} /> Add Criterion
+                    </Button>
                   </div>
                 )}
               </div>
-              {section.canAddItems && (
-                <div className="mt-4">
-                  <Button
-                    onClick={section.handlers.handleAddItem}
-                    variant="flat"
-                    color="primary"
-                  >
-                    <Plus size={16} />
-                    Add Criterion
-                  </Button>
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
 
-        <div className="p-6  flex justify-end">
+        <div className="p-6 flex justify-end">
           <Button onClick={handleSaveRubric} color="secondary" variant="flat">
             Grade Submissions <ArrowRight size={16} />
           </Button>
         </div>
       </div>
-      {/* --- Final JSON Output Preview --- */}
     </div>
   );
 };

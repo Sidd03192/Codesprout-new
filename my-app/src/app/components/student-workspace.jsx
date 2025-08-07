@@ -31,6 +31,7 @@ import {
   GripVertical,
   CloudUpload,
   Save,
+  Bubbles,
 } from "lucide-react";
 import {
   Button,
@@ -48,11 +49,11 @@ import {
   code,
 } from "@heroui/react";
 import { createClient } from "../../../utils/supabase/client";
-import Editor from "@monaco-editor/react";
 import { getAssignmentDetails, saveAssignment } from "../student-dashboard/api";
 import { executeCode } from "./editor/api";
 import "../components/assignment/RichText/editor-styles.css"; // Import highlight.js theme
 import { Results } from "./results";
+import { Icon } from "@iconify/react";
 import {
   Modal,
   ModalContent,
@@ -62,17 +63,13 @@ import {
   useDisclosure,
 } from "@heroui/react";
 import CodeEditor from "./editor/code-editor";
-import { RichTextEditor } from "./assignment/RichText/rich-description";
-import { Icon } from "@iconify/react";
 
 export const CodingInterface = ({
-  user,
   id,
   isPreview,
   previewData,
   role,
-  data,
-  rubric,
+  submissionData,
 }) => {
   const supabase = createClient();
   const [activeTab, setActiveTab] = useState("Description");
@@ -136,7 +133,13 @@ export const CodingInterface = ({
       setIsLoading(true);
       const data = await getAssignmentDetails(id);
       setAssignmentData(data);
-      setInitialCode(data.code_template || "");
+      setAssignmentData((prevAssignmentData) => ({
+        ...prevAssignmentData,
+        code_template: submissionData.submitted_code,
+      }));
+      // update code based on most recently submitted version:
+      console.log(submissionData.submitted_code);
+      setInitialCode(data.code_template);
       console.log("Initial code set:", data.code_template || "");
       console.log("Assignment data fetched:", data);
       setIsLoading(false);
@@ -521,7 +524,7 @@ export const CodingInterface = ({
       <div className="h-screen w-full bg-gradient-to-br from-[#1e2b22] via-[#1e1f2b] to-[#2b1e2e] p-4 flex gap-2">
         {/* Left Panel - Problem Description */}
         <Card
-          className="backdrop-blur-sm rounded-2xl border border-white/10 shadow-2xl flex flex-col overflow-hidden bg-zinc-800/40"
+          className="backdrop-blur-sm rounded-lg border border-white/10 shadow-2xl flex flex-col overflow-hidden bg-zinc-800/40"
           style={{ width: `${leftWidth}%` }}
         >
           {isLoading ? (
@@ -531,7 +534,7 @@ export const CodingInterface = ({
           ) : (
             // FIX #1: This wrapper div must become a flex container that fills the card.
             <div className="flex-1 flex flex-col overflow-hidden">
-              <CardHeader className="pb-0 pt-4 px-2 border-b border-white/10 bg-black/20 rounded-t-2xl min-h-[50px]">
+              <CardHeader className="pb-0 pt-4 px-2 border-b border-white/10 bg-black/20 min-h-[50px]">
                 <Tabs
                   selectedKey={activeTab}
                   onSelectionChange={setActiveTab}
@@ -569,19 +572,22 @@ export const CodingInterface = ({
               {activeTab === "results" && (
                 <div className="w-full h-full flex  max-h-full ">
                   <div className="  w-full   max-h-full bg-transparent">
-                    {/* <Icon
-                      icon="lucide:bubbles"
-                      className="mx-auto text-6xl text-foreground-400 mb-2"
-                    />
-                    <p className="text-gray-400">
-                      Relaxxx.... No grades or results available yet.
-                    </p> */}
-                    <Results
-                      id={assignmentData?.id}
-                      editorRef={editorRef}
-                      rubric={rubric}
-                      role={role}
-                    />
+                    {submissionData.grading_data ? (
+                      <Results
+                        id={assignmentData?.id}
+                        editorRef={editorRef}
+                        rubric={assignmentData?.rubric}
+                        gradingData={submissionData.grading_data}
+                        role={role}
+                      />
+                    ) : (
+                      <div className="flex flex-col gap-5 justify-center items-center h-full">
+                        <Bubbles size={200} className="text-gray-400" />
+                        <p className="text-gray-400">
+                          Relaxxx.... No grades or results available yet.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -601,13 +607,13 @@ export const CodingInterface = ({
 
         {/* Right Panel - Code Editor and Console */}
         <Card
-          className="backdrop-blur-sm rounded-2xl border border-white/10 shadow-2xl flex flex-col overflow-hidden right-panel bg-zinc-800/50 "
+          className="backdrop-blur-sm rounded-lg border border-white/10 shadow-2xl flex flex-col overflow-hidden right-panel bg-zinc-800/50 "
           style={{ width: `${100 - leftWidth - 1}%` }}
         >
           {/* Code Editor Section */}
           <div style={{ height: "100%" }} className="flex flex-col">
             {/* Code Editor Header */}
-            <CardHeader className="flex items-center justify-between  py-2 px-6 border-b border-white/10 bg-black/20 rounded-t-2xl h-14">
+            <CardHeader className="flex items-center justify-between  py-2 px-6 border-b border-white/10 bg-black/20  h-14">
               <Select
                 defaultSelectedKeys={[`${assignmentData?.language || "java"}`]}
                 onChange={(e) => setSelectedLanguage(e.target.value)}
@@ -716,6 +722,7 @@ export const CodingInterface = ({
                   onPress={runCode}
                   isDisabled={isRunning}
                   size="md"
+                  radius="sm"
                   startContent={
                     isRunning ? (
                       <Spinner color="default" size="sm" />
@@ -732,6 +739,7 @@ export const CodingInterface = ({
                   color="primary"
                   variant="faded"
                   size="md"
+                  radius="sm"
                   onPress={() => saveAssignmentData(false)}
                   isDisabled={isSubmitting || saving || timeUp}
                   startContent={
@@ -748,6 +756,7 @@ export const CodingInterface = ({
                   onPress={onOpen}
                   isDisabled={isSubmitting || timeUp}
                   size="md"
+                  radius="sm"
                   startContent={
                     isSubmitting ? (
                       <Spinner color="default" size="sm" />

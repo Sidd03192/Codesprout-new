@@ -1,13 +1,13 @@
- @import "tailwindcss";
- @plugin '../../hero.js';
+@import "tailwindcss";
+@plugin '../../hero.js';
 /* Note: You may need to change the path to fit your project structure */
- @source '../../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}';
- @custom-variant dark (&:is(.dark *));
+@source '../../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}';
+@custom-variant dark (&:is(.dark *));
 
- @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 
 body {
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   @apply bg-background text-foreground;
 }
 
@@ -35,57 +35,63 @@ body {
   @apply flex items-center justify-center w-8 h-8 rounded-md text-xs font-medium;
 }
 
-  .custom-scrollbar::-webkit-scrollbar {
-      width: 6px;
-      height: 5px;
-    }
-    .custom-scrollbar::-webkit-scrollbar-track {
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 3px;
-    }
-    .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 3px;
-    }
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-      background: rgba(255, 255, 255, 0.3);
-    }
-
-    .monaco-editor {
-    background-color: rgba(25, 27, 34, 0.8) !important; /* Main editor background */
-    opacity: 80% !important;
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 5px;
 }
-    /* Style the scrollbar track (the background) */.monaco-editor .monaco-scrollable-element > .scrollbar > .slider {
-      background: rgba(255, 255, 255, 0.2);
-            border-radius: 10px !important;
-        }
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
 
-        .monaco-editor .monaco-scrollable-element > .scrollbar > .slider:hover {
-            background: rgba(121, 121, 121, 0.7) !important;
-        }
+.monaco-editor {
+  background-color: rgba(
+    25,
+    27,
+    34,
+    0.8
+  ) !important; /* Main editor background */
+  opacity: 80% !important;
+}
+/* Style the scrollbar track (the background) */
+.monaco-editor .monaco-scrollable-element > .scrollbar > .slider {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px !important;
+}
 
-        .monaco-editor .monaco-scrollable-element > .scrollbar > .slider.active {
-      background: rgba(255, 255, 255, 0.05);
-        }
+.monaco-editor .monaco-scrollable-element > .scrollbar > .slider:hover {
+  background: rgba(121, 121, 121, 0.7) !important;
+}
 
-        /* Vertical scrollbar */
-        .monaco-editor .monaco-scrollable-element > .scrollbar.vertical {
-            width: 12px !important;
-            background: transparent !important;
-        }
+.monaco-editor .monaco-scrollable-element > .scrollbar > .slider.active {
+  background: rgba(255, 255, 255, 0.05);
+}
 
-        .monaco-editor .monaco-scrollable-element > .scrollbar.vertical > .slider {
-            width: 6px !important;
-            left: 2px !important;
-            border-radius: 10px !important;
-        }
-        .monaco-editor .monaco-scrollable-element > .scrollbar::before,
+/* Vertical scrollbar */
+.monaco-editor .monaco-scrollable-element > .scrollbar.vertical {
+  width: 12px !important;
+  background: transparent !important;
+}
+
+.monaco-editor .monaco-scrollable-element > .scrollbar.vertical > .slider {
+  width: 6px !important;
+  left: 2px !important;
+  border-radius: 10px !important;
+}
+.monaco-editor .monaco-scrollable-element > .scrollbar::before,
 .monaco-editor .monaco-scrollable-element > .scrollbar::after {
-    display: none !important;
-    background-color: grey;
+  display: none !important;
+  background-color: grey;
 }
 
 .monaco-editor .monaco-scrollable-element > .scrollbar {
-    border: none !important;
-    box-shadow: none !important;
+  border: none !important;
+  box-shadow: none !important;
 }

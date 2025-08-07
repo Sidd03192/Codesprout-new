@@ -256,22 +256,17 @@ const structureTestingData = (data) => {
   };
 };
 
-export const fetchGradingData = async (assignment_id) => {
+export const fetchStudentData = async (assignment_id) => {
   const supabase = await createClient();
   const {
     data: { user },
     error: userError,
   } = await supabase.auth.getUser();
   const student_id = user.id;
-  console.log(
-    "Fetching grading data for student:",
-    student_id,
-    "assignment:",
-    assignment_id
-  );
+
   const { data, error } = await supabase
     .from("assignment_students")
-    .select("grading_data")
+    .select("grading_data, submitted_code, submitted_at, name")
     .eq("student_id", student_id)
     .eq("assignment_id", assignment_id)
     .single();
@@ -280,5 +275,7 @@ export const fetchGradingData = async (assignment_id) => {
     console.error("Error fetching grading data:", error.message);
     return null;
   }
+  console.log(data, "dataaaaaaaaaaaaaaaaaaaaaaaa");
+
   return data;
 };

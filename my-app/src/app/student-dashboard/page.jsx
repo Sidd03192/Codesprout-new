@@ -19,7 +19,6 @@ import { StudentGrades } from "./grades";
 import { StudentCourses } from "./courses";
 import { getAssignmentsData } from "./api";
 import { insertUserIfNew } from "../dashboard/api";
-import { createClient } from "../../../utils/supabase/client";
 
 export default function StudentDashboard() {
   const supabase = createClient();

@@ -216,6 +216,7 @@ export default function AuthForm() {
           endContent={
             alertType === "success" ? (
               <Button
+                radius="sm"
                 color="success"
                 size="sm"
                 variant="flat"
@@ -345,6 +346,7 @@ export default function AuthForm() {
             )}
 
             <Button
+              radius="sm"
               className="w-full"
               color="primary"
               type="submit"
@@ -363,6 +365,7 @@ export default function AuthForm() {
 
           <div className="flex flex-col gap-2">
             <Button
+              radius="sm"
               onPress={signInWithGoogle}
               startContent={<Icon icon="flat-color-icons:google" width={24} />}
               variant="ghost"
@@ -370,6 +373,7 @@ export default function AuthForm() {
               Continue with Google
             </Button>
             <Button
+              radius="sm"
               startContent={<Icon icon="fe:github" width={24} />}
               variant="bordered"
             >
