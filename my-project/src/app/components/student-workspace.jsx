@@ -51,7 +51,7 @@ import {
 import { createClient } from "../../../utils/supabase/client";
 import { getAssignmentDetails, saveAssignment } from "../student-dashboard/api";
 import { executeCode } from "./editor/api";
-import "../components/assignment/RichText/editor-styles.css"; // Import highlight.js theme
+import "./assignment/RichText/editor-styles.css"; // Import highlight.js theme
 import { Results } from "./results";
 import { Icon } from "@iconify/react";
 import {
