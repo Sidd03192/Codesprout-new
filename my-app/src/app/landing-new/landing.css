@@ -1,0 +1,179 @@
+.dark {
+  /* Dark Mode Variables */
+  --background: 222.2 84% 4.9%;
+  --foreground: 210 40% 98%;
+  --card: 222.2 84% 4.9%;
+  --card-foreground: 210 40% 98%;
+  --popover: 222.2 84% 4.9%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 210 40% 98%;
+  --primary-foreground: 222.2 47.4% 11.2%;
+  --secondary: 217.2 32.6% 17.5%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 217.2 32.6% 17.5%;
+  --muted-foreground: 215 20.2% 65.1%;
+  --accent: 217.2 32.6% 17.5%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 217.2 32.6% 17.5%;
+  --input: 217.2 32.6% 17.5%;
+  --ring: 212.7 26.8% 83.9%;
+  --sidebar-background: 240 5.9% 10%;
+  --sidebar-foreground: 240 4.8% 95.9%;
+  --sidebar-primary: 224.3 76.3% 48%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 240 3.7% 15.9%;
+  --sidebar-accent-foreground: 240 4.8% 95.9%;
+  --sidebar-border: 240 3.7% 15.9%;
+  --sidebar-ring: 217.2 91.2% 59.8%;
+  --brand: 151 55% 45%;
+  --brand-2: 262 83% 58%;
+  --brand-contrast: 0 0% 100%;
+  --gradient-brand: 135deg, hsl(var(--brand)), hsl(var(--brand-2));
+  --shadow-elegant: 0 10px 30px -10px hsl(var(--brand-2) / 0.35);
+  --shadow-glow: 0 0 40px hsl(var(--brand) / 0.35);
+}
+
+/* --- BASE STYLES ---
+  Global styles applied to the document.
+*/
+
+* {
+  border-color: hsl(var(--border));
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* --- COMPONENT STYLES ---
+  Reusable component classes.
+*/
+
+/* Glass surfaces */
+.glass {
+  background: hsl(var(--foreground) / 0.06);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid hsl(var(--foreground) / 0.12);
+  box-shadow: var(--shadow-elegant);
+}
+
+.card-glass {
+  background: hsl(var(--foreground) / 0.06);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid hsl(var(--foreground) / 0.12);
+  box-shadow: var(--shadow-elegant);
+  border-radius: var(--radius);
+  padding: 1.5rem; /* 24px */
+}
+
+/* Themed buttons */
+.btn-hero {
+  background-image: linear-gradient(var(--gradient-brand));
+  color: hsl(var(--brand-contrast));
+  box-shadow: var(--shadow-glow);
+}
+
+.btn-hero:hover {
+  opacity: 0.95;
+}
+
+.btn-glass {
+  background: hsl(var(--foreground) / 0.06);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid hsl(var(--foreground) / 0.12);
+  box-shadow: var(--shadow-elegant);
+}
+
+/* --- UTILITY STYLES ---
+  Helper classes for animations and effects.
+*/
+
+/* Animated underline links */
+.story-link {
+  position: relative;
+  display: inline-block;
+}
+
+.story-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  width: 100%;
+  background: hsl(var(--brand));
+  transform: scaleX(0);
+  transform-origin: bottom right;
+  transition: transform 300ms;
+}
+
+.story-link:hover::after {
+  transform: scaleX(1);
+  transform-origin: bottom left;
+}
+
+/* Simple hover scale effect */
+.hover-scale {
+  transition: transform 0.2s;
+}
+
+.hover-scale:hover {
+  transform: scale(1.03);
+}
+
+/* Spotlight effect (requires setting --x and --y with JS) */
+.spotlight {
+  position: relative;
+  isolation: isolate;
+}
+
+.spotlight::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  background: radial-gradient(
+      600px circle at var(--x) var(--y),
+      hsl(var(--brand) / 0.25),
+      transparent 40%
+    ),
+    linear-gradient(135deg, hsl(var(--background)), hsl(var(--background)));
+}
+
+/* Marquee animation utilities */
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee {
+  overflow: hidden;
+}
+
+.marquee-content {
+  display: flex;
+  width: 200%;
+  animation: marquee 25s linear infinite;
+}
+
+.marquee-content > * {
+  flex: 0 0 auto;
+  margin-right: 1rem;
+}
+
+.marquee--reverse .marquee-content {
+  animation-direction: reverse;
+}

@@ -6,39 +6,33 @@ import { Button } from "@heroui/react";
 import { createClient } from "../../utils/supabase/client";
 import { useEffect, useState } from "react";
 import Navigation from "./components/nav";
-import LandingPage from "./otherpages/landing";
+import LandingPage from "./landing/landing";
+import { Landing } from "./landing-new/landing";
 export default function Home() {
   const supabase = createClient();
 
-    const [session, setSession] = useState(null);
-    const fetchSession = async () => {
-        const currentSession = await supabase.auth.getSession();
-        console.log(currentSession);
-        setSession(currentSession.data.session);
-      };
+  const [session, setSession] = useState(null);
+  const fetchSession = async () => {
+    const currentSession = await supabase.auth.getSession();
+    console.log(currentSession);
+    setSession(currentSession.data.session);
+  };
 
-
-    useEffect(() => {
-      fetchSession();
-      if (!session) {
-
-      }
-      const {data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-        console.log('Auth state changed:', event, session);
+  useEffect(() => {
+    fetchSession();
+    if (!session) {
+    }
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        console.log("Auth state changed:", event, session);
         setSession(session);
-      })
-      
-      return () => {
-        authListener.subscription.unsubscribe();  // need to unsubscribe to avoid memory leaks
-      };
-    }, []);
+      }
+    );
 
-
-
-
-
-
-
+    return () => {
+      authListener.subscription.unsubscribe(); // need to unsubscribe to avoid memory leaks
+    };
+  }, []);
 
   return (
     <>
@@ -53,11 +47,9 @@ export default function Home() {
       
       
     </div> */}
-      
-      <LandingPage></LandingPage>
-   </>
-    
-    
 
+      {/* <LandingPage></LandingPage> */}
+      <Landing />
+    </>
   );
 }
