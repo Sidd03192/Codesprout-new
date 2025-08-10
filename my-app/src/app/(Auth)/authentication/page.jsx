@@ -144,7 +144,7 @@ export default function AuthForm() {
   const getUserRole = async (userId) => {
     try {
       const { data, error } = await supabase
-        .from("profiles")
+        .from("users")
         .select("role")
         .eq("id", userId)
         .single();
