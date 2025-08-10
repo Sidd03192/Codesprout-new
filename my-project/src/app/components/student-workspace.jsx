@@ -51,7 +51,7 @@ import {
 import { createClient } from "../../../utils/supabase/client";
 import { getAssignmentDetails, saveAssignment } from "../student-dashboard/api";
 import { executeCode } from "./editor/api";
-import "../components/assignment/RichText/editor-styles.css"; // Import highlight.js theme
+import "./assignment/RichText/editor-styles.css"; // Import highlight.js theme
 import { Results } from "./results";
 import { Icon } from "@iconify/react";
 import {
@@ -133,12 +133,14 @@ export const CodingInterface = ({
       setIsLoading(true);
       const data = await getAssignmentDetails(id);
       setAssignmentData(data);
-      setAssignmentData((prevAssignmentData) => ({
-        ...prevAssignmentData,
-        code_template: submissionData.submitted_code,
-      }));
+      if (submissionData?.submitted_code) {
+        setAssignmentData((prevAssignmentData) => ({
+          ...prevAssignmentData,
+          code_template: submissionData.submitted_code,
+        }));
+      }
+
       // update code based on most recently submitted version:
-      console.log(submissionData.submitted_code);
       setInitialCode(data.code_template);
       console.log("Initial code set:", data.code_template || "");
       console.log("Assignment data fetched:", data);
@@ -572,12 +574,12 @@ export const CodingInterface = ({
               {activeTab === "results" && (
                 <div className="w-full h-full flex  max-h-full ">
                   <div className="  w-full   max-h-full bg-transparent">
-                    {submissionData.grading_data ? (
+                    {submissionData?.grading_data ? (
                       <Results
                         id={assignmentData?.id}
                         editorRef={editorRef}
                         rubric={assignmentData?.rubric}
-                        gradingData={submissionData.grading_data}
+                        gradingData={submissionData?.grading_data}
                         role={role}
                       />
                     ) : (
