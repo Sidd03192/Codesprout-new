@@ -22,6 +22,7 @@ import { Overview } from "./pages/overview";
 import { Assignments } from "./pages/assignments";
 import { Gradebook } from "./pages/gradebook";
 import { Classroom } from "./pages/classroom";
+import AccessDenied from "../components/AccessDenied";
 
 export default function Dashboard() {
   const [userType, setUserType] = React.useState("teacher"); // "teacher" or "student"
@@ -49,7 +50,35 @@ export default function Dashboard() {
       authListener.subscription.unsubscribe();
     };
   }, []);
+  useEffect(() => {
+    if (!session?.user?.id) return;
+  
+    (async () => {
+      console.log("session.user.id" , session.user.id);
+      const type = await getUserType(session.user.id);
+      setUserType(type); 
+    })();
+  }, [session?.user?.id]);
+  const getUserType = async (userId) => {
+    const supabase = createClient();
+    console.log("userId" , userId);
+    try {
+      const { data, error } = await supabase
+        .from("users")
+        .select("role")
+        .eq("id", userId)
+      console.log("data" , data);
+      if (error) {
+        console.error("Error fetching user role:", error.message);
+        return "student"; 
+      }
 
+      return data?.role || "student";
+    } catch (err) {
+      console.error("Unexpected error fetching user role:", err.message);
+      return "student";
+    }
+  };
   const signOut = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
@@ -167,7 +196,10 @@ export default function Dashboard() {
       setIsSidebarCollapsed(!isSidebarCollapsed);
     }
   };
-
+  console.log("user Type" , userType);
+  /**if(userType == "student"){
+    return <AccessDenied userRole={userType} />;
+  }**/
   // Render the active page component
   const renderActivePage = () => {
     if (userType === "teacher") {
@@ -210,6 +242,7 @@ export default function Dashboard() {
     console.log("Changing page to:", page);
     setActivePage(page);
   };
+  
 
   return isLoading ? (
     <div className="flex h-screen w-full bg-gradient-to-br from-[#1e2b22] via-[#1e1f2b] to-[#2b1e2e] text-center items-center justify-center">
@@ -328,4 +361,8 @@ export default function Dashboard() {
       </div>
     </div>
   );
+
+  
 }
+
+
