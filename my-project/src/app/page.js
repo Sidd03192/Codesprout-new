@@ -6,7 +6,6 @@ import { Button } from "@heroui/react";
 import { createClient } from "../../utils/supabase/client";
 import { useEffect, useState } from "react";
 import Navigation from "./components/nav";
-import LandingPage from "./landing/landing";
 import { Landing } from "./landing-new/landing";
 export default function Home() {
   const supabase = createClient();
@@ -47,7 +46,6 @@ export default function Home() {
       
       
     </div> */}
-
       {/* <LandingPage></LandingPage> */}
       <Landing />
     </>
