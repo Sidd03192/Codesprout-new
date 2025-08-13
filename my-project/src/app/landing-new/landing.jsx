@@ -22,9 +22,10 @@ export const Landing = () => {
   }, []);
 
   return (
-    <div className="relative starfield-container overflow-x-hidden">
+    <div className="relative overflow-x-hidden bg-black">
+      <div className="starfield-bg"></div>
       <div
-        className="pointer-events-none fixed inset-0 z-30 transition duration-300"
+        className="pointer-events-none fixed inset-0 z-20 transition duration-300"
         style={{
           background: `radial-gradient(600px at ${mousePosition.x}px ${mousePosition.y}px, rgba(139, 92, 246, 0.15), transparent 80%)`,
         }}
