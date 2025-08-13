@@ -22,8 +22,7 @@ export const Landing = () => {
   }, []);
 
   return (
-    <div className="max-h-screen overflow-y-scroll overflow-x-hidden bg-black relative">
-      <div className="starfield-bg"></div>
+    <div className="relative starfield-container overflow-x-hidden">
       <div
         className="pointer-events-none fixed inset-0 z-30 transition duration-300"
         style={{

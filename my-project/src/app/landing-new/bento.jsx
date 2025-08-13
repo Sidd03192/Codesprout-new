@@ -102,7 +102,7 @@ export const Bento = () => {
           {bentoCards.map((card, index) => (
             <div
               key={index}
-              className={`group relative p-6 rounded-2xl bg-gray-800/50 border border-gray-700/50 overflow-hidden transform transition-transform duration-300 ease-in-out hover:scale-[1.02] card-hover-glow
+              className={`group relative p-6 rounded-3xl bg-gray-900 border border-gray-800 overflow-hidden transform transition-transform duration-300 ease-in-out hover:scale-[1.02] card-hover-glow
                 ${card.large ? "md:col-span-2" : "md:col-span-1"}
                 transition-all duration-700 transform ${
                   containerInView
