@@ -91,14 +91,9 @@ const PricingCard = ({ plan, isPopular = false, delay = 0, inView }) => {
         </div>
       )}
 
-      {/* Glow effect */}
-      {isPopular && (
-        <div className="absolute inset-0 bg-[linear-gradient(var(--gradient-brand))] rounded-2xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity duration-500" />
-      )}
-
       <div className={`
         relative h-full card-glass rounded-2xl p-8 overflow-hidden
-        ${isPopular ? 'border-2 border-primary/30' : ''}
+        ${isPopular ? 'glowing-border' : ''}
       `}>
         {/* Background decorations */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
