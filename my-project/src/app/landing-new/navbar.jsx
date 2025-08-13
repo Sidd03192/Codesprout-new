@@ -20,14 +20,11 @@ export const Navbar = () => {
           </a>
 
           <div className="hidden md:flex items-center gap-6 text-sm">
-            <a href="#services" className="story-link">
-              How it Works
-            </a>
-            <a href="#services" className="story-link">
+            <a href="#features" className="story-link">
               Features
             </a>
-            <a href="#testimonials" className="story-link">
-              Testimonials
+            <a href="#interactive" className="story-link">
+              Interactive
             </a>
             <a href="#pricing" className="story-link">
               Pricing
