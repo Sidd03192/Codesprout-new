@@ -202,7 +202,6 @@ export default function Dashboard() {
   }**/
   // Render the active page component
   const renderActivePage = () => {
-    if (userType === "teacher") {
       switch (activePage) {
         case "overview":
           return <Overview />;
@@ -220,21 +219,7 @@ export default function Dashboard() {
           return <Classroom session={session} classes={classes} />;
         default:
           return <Overview />;
-      }
-    } else {
-      switch (activePage) {
-        case "overview":
-          return <StudentOverview />;
-        case "assignments":
-          return <StudentAssignments />;
-        case "grades":
-          return <StudentGrades />;
-        case "courses":
-          return <StudentCourses />;
-        default:
-          return <StudentOverview />;
-      }
-    }
+        } 
   };
 
   // Handle page change
