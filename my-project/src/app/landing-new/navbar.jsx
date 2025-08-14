@@ -29,7 +29,7 @@ export const Navbar = () => {
             <a href="#pricing" className="story-link">
               Pricing
             </a>
-            <Button variant="ghost" color="secondary">
+            <Button variant="ghost">
               <a href="#cta" aria-label="Request a demo">
                 Request a Demo
               </a>

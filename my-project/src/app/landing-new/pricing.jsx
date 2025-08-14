@@ -93,11 +93,11 @@ const PricingCard = ({ plan, isPopular = false, delay = 0, inView }) => {
 
       {/* Glow effect */}
       {isPopular && (
-        <div className="absolute inset-0 bg-[linear-gradient(var(--gradient-brand))] rounded-2xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity duration-500" />
+        <div className="absolute inset-0 bg-[linear-gradient(var(--gradient-brand))] rounded-[56px] md:rounded-[64px] blur-xl opacity-20 group-hover:opacity-30 transition-opacity duration-500" />
       )}
 
       <div className={`
-        relative h-full card-glass rounded-2xl p-8 overflow-hidden
+        relative h-full card-glass rounded-[56px] md:rounded-[64px] p-8 overflow-hidden
         ${isPopular ? 'border-2 border-primary/30' : ''}
       `}>
         {/* Background decorations */}
