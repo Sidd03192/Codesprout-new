@@ -30,12 +30,10 @@ export const Navbar = ({ isAtTop }) => {
             <a href="#features" className="story-link">
               Features
             </a>
-            <a href="#interactive" className="story-link">
+            <a href="#hero" className="story-link">
               Interactive
             </a>
-            <a href="#pricing" className="story-link">
-              Pricing
-            </a>
+            
             <Button className="glass rounded-lg transition-transform hover:scale-105 ">
               <a href="#cta" aria-label="Request a demo">
                 Request a Demo
