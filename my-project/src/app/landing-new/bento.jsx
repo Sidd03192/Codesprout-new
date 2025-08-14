@@ -98,82 +98,86 @@ const features = [
 
 export default function BentoGrid() {
   return (
-    <div className=" relative z-10 max-w-6xl mx-auto ">
-      <div className="text-center mb-12">
-        <h1 className="text-4xl md:text-6xl font-bold leading-snug mb-4 text-glow-container">
-          Finally, an AI That Does <br />
-          <span className="bg-[linear-gradient(var(--gradient-brand))] bg-clip-text text-transparent underline">
-            Your Homework
-          </span>
-        </h1>
-        <p className="text-xl text-zinc-400 max-w-2xl mx-auto">
-          Transform your teaching experience with cutting-edge AI tools designed
-          for modern educators
-        </p>
-      </div>
+    <section id="features">
+      <div className=" relative z-10 max-w-[1400px] w-full mx-auto p-10 ">
+        <div className="text-center mb-6">
+          <h1 className="text-4xl md:text-6xl font-bold leading-snug mb-4 ">
+            Finally, an AI That Does
+            <span className="bg-[linear-gradient(var(--gradient-brand))] bg-clip-text text-transparent underline">
+              {" "}
+              Your Homework
+            </span>
+          </h1>
+          <p className="text-xl text-zinc-400 max-w-3xl mx-auto">
+            Free yourself from the endless cycle of grading and get back to the
+            art of teaching with powerful, reliable tools at your side. <br />
+            #BeTheCoolTeacher😎
+          </p>
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-fr">
-        {features.map((feature, index) => (
-          <div
-            key={index}
-            className={`
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-fr text-glow-container">
+          {features.map((feature, index) => (
+            <div
+              key={index}
+              className={`
                 group relative overflow-hidden rounded-2xl bg-gradient-to-br from-zinc-800/50 to-zinc-900/50 
                 border border-zinc-700/50 p-8 transition-all duration-500 hover:scale-[1.02] 
                 hover:shadow-2xl hover:shadow-zinc-900/50 hover:border-zinc-600/50
                 ${feature.className}
               `}
-          >
-            {/* Background Image */}
-            <div className="absolute inset-0 overflow-hidden">
-              {feature.background}
-            </div>
+            >
+              {/* Background Image */}
+              <div className="absolute inset-0 overflow-hidden">
+                {feature.background}
+              </div>
 
-            {/* Gradient Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-br from-transparent via-zinc-900/20 to-zinc-900/60 group-hover:from-zinc-900/10 group-hover:to-zinc-900/40 transition-all duration-500" />
+              {/* Gradient Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-br from-transparent via-zinc-900/20 to-zinc-900/60 group-hover:from-zinc-900/10 group-hover:to-zinc-900/40 transition-all duration-500" />
 
-            {/* Content */}
-            <div className="relative z-10 h-full flex flex-col">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 group-hover:bg-white/20 group-hover:scale-110 transition-all duration-300">
-                  <feature.Icon className="w-6 h-6 text-white" />
+              {/* Content */}
+              <div className="relative z-10 h-full flex flex-col">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 group-hover:bg-white/20 group-hover:scale-110 transition-all duration-300">
+                    <feature.Icon className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+
+                <h3 className="text-xl md:text-2xl font-bold text-white mb-3 group-hover:text-zinc-100 transition-colors duration-300">
+                  {feature.name}
+                </h3>
+
+                <p className="text-zinc-300 mb-6 flex-grow group-hover:text-zinc-200 transition-colors duration-300">
+                  {feature.description}
+                </p>
+
+                <div className="mt-auto">
+                  <button className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 text-white font-medium hover:bg-white/20 hover:scale-105 transition-all duration-300 group-hover:shadow-lg">
+                    {feature.cta}
+                    <svg
+                      className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                  </button>
                 </div>
               </div>
 
-              <h3 className="text-xl md:text-2xl font-bold text-white mb-3 group-hover:text-zinc-100 transition-colors duration-300">
-                {feature.name}
-              </h3>
-
-              <p className="text-zinc-300 mb-6 flex-grow group-hover:text-zinc-200 transition-colors duration-300">
-                {feature.description}
-              </p>
-
-              <div className="mt-auto">
-                <button className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 text-white font-medium hover:bg-white/20 hover:scale-105 transition-all duration-300 group-hover:shadow-lg">
-                  {feature.cta}
-                  <svg
-                    className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                </button>
+              {/* Hover Glow Effect */}
+              <div className="absolute  inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 rounded-2xl blur-xl" />
               </div>
             </div>
-
-            {/* Hover Glow Effect */}
-            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 rounded-2xl blur-xl" />
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
-    </div>
+    </section>
   );
 }

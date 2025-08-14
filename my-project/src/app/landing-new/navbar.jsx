@@ -36,7 +36,7 @@ export const Navbar = ({ isAtTop }) => {
             <a href="#pricing" className="story-link">
               Pricing
             </a>
-            <Button variant="ghost">
+            <Button className="glass rounded-lg transition-transform hover:scale-105 ">
               <a href="#cta" aria-label="Request a demo">
                 Request a Demo
               </a>

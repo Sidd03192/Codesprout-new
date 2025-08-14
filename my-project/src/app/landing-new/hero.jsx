@@ -39,21 +39,21 @@ export const Hero = () => {
             className="inline-block bg-gray-900 border border-gray-700 rounded-full px-4 py-2 text-sm text-gray-300 hover:border-gray-500 transition-all mb-6 group"
           >
             <span className="bg-gradient-to-r from-purple-400 to-blue-400 text-transparent bg-clip-text font-semibold">
-              ✨ Beta Release 1.0
+              ✨ Beta Release 1.0 Free For Educators →
             </span>
           </a>
         </div>
 
         <h1 className="font-heading text-6xl md:text-7xl font-bold leading-tight mb-4 md:mb-6 animate-enter ">
-          <span>Stop Grading, </span>{" "}
+          <span>Stop Grading and </span>{" "}
           <span className="bg-[linear-gradient(var(--gradient-brand))] bg-clip-text text-transparent">
             {typedText}
           </span>
         </h1>
         <p className="text-muted-foreground text-lg md:text-xl max-w-3xl mx-auto mb-8 animate-fade-in">
-          Code Sprout is the AI-powered teaching assistant that automates your
-          grading workflow, provides instant student feedback, and gives you
-          back your weekends.
+          Code Sprout is the AI-powered teaching assistant that completely
+          automates your grading workflow, provides advanced classroom
+          analytics, and gives you back your weekends.
         </p>
         <div class="relative z-10 inline-flex items-center justify-center gap-4 group">
           <div class="absolute inset-0 duration-1000 opacity-60 transitiona-all cursor-crosshair bg-gradient-to-r from-indigo-500 via-pink-500 to-emerald-400 rounded-xl blur-md filter group-hover:opacity-100 group-hover:duration-200"></div>
@@ -63,7 +63,7 @@ export const Hero = () => {
             title="payment"
             href="#"
           >
-            Request A Demo
+            Reclaim Your Weekends
             <ArrowRight className="w-4 h-4 ml-2" />
           </a>
         </div>
