@@ -72,6 +72,32 @@ body {
 }
 
 /* You can add this to your global styles (e.g., globals.css) */
+/* Add this class to the div you want the glow behind */
+.text-glow-container {
+  position: relative;
+  isolation: isolate; /* Prevents z-index issues with the glow */
+}
+
+/* This creates the glow effect as a separate layer behind the container */
+.text-glow-container::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: -1; /* Places the glow behind the container's content */
+
+  /* Your glow styles */
+  width: 50%; 
+  height: 50%;
+  background: radial-gradient(
+    circle,
+    hsl(var(--brand) / 0.6), /* Your brand color */
+    transparent 50%
+  );
+  filter: blur(120px);
+}
+
 
 .hero-glow::before {
   content: '';
@@ -110,7 +136,10 @@ body {
   border: 1px solid hsl(var(--foreground) / 0.12);
   box-shadow: var(--shadow-elegant);
 }
-
+.navbar--no-border {
+  border: none !important;
+  box-shadow: none !important;
+}
 /* --- UTILITY STYLES ---
   Helper classes for animations and effects.
 */

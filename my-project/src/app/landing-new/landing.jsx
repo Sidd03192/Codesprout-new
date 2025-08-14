@@ -1,39 +1,55 @@
 "use client";
 
+import React, { useState, useEffect, useRef } from "react";
 import Hero from "./hero";
 import Bento from "./bento";
-const { default: Navbar } = require("./navbar");
-
+import Navbar from "./navbar"; // Corrected import syntax
 import BackgroundEffects from "./background-effects";
-import StickyScroll from "./sticky-scroll";
 import Pricing from "./pricing";
-import { useState, useEffect } from "react";
 
 export const Landing = () => {
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-
+  const [isAtTop, setIsAtTop] = useState(true);
+  const scrollContainerRef = useRef(null);
+  console.log(isAtTop);
   useEffect(() => {
-    const handleMouseMove = (event) => {
-      setMousePosition({ x: event.clientX, y: event.clientY });
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      setIsAtTop(container.scrollTop === 0);
     };
 
+    container.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => {
+      container.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
+  useEffect(() => {
+    const handleMouseMove = (event) => {};
     window.addEventListener("mousemove", handleMouseMove);
-
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
     };
   }, []);
 
   return (
-    <div className="max-h-screen overflow-x-hidden relative overflow-y-auto bg-zinc-900">
+    // Attach the ref to your main scrollable div
+    <div
+      ref={scrollContainerRef}
+      className="max-h-[100vh] overflow-x-hidden relative overflow-y-auto bg-zinc-900"
+    >
       <BackgroundEffects />
-      <Navbar className="bg-transparent" />{" "}
+      {/* You can now pass the isAtTop state to the Navbar if it needs to change styles */}
+      <Navbar isAtTop={isAtTop} />
       <main>
         <Hero />
         <Bento />
-        <StickyScroll />
         <Pricing />
       </main>
     </div>
   );
 };
+
+// It's standard practice to export default at the end
+export default Landing;
