@@ -1,6 +1,7 @@
 // ... existing imports ...
 import { createClient } from "../../../../utils/supabase/client";
 import { useRouter } from "next/navigation";
+import { parseDate, parseDateTime } from "@internationalized/date";
 import {
   Button,
   Card,
@@ -44,45 +45,125 @@ import { Testcase } from "./testcases";
 import { AssignmentPreview } from "./assignment-preview";
 import { getClasses, fetchStudentsForClass } from "../../dashboard/api";
 import { MiniRubric } from "./rubric";
-export default function CreateAssignmentPage({ session, classes, setOpen }) {
+// Helper functions to convert between Date and DateValue (moved to top level)
+const dateToDateValue = (date) => {
+  if (!date) return null;
+  const jsDate = date instanceof Date ? date : new Date(date);
+  const year = jsDate.getFullYear();
+  const month = String(jsDate.getMonth() + 1).padStart(2, '0');
+  const day = String(jsDate.getDate()).padStart(2, '0');
+  const hour = String(jsDate.getHours()).padStart(2, '0');
+  const minute = String(jsDate.getMinutes()).padStart(2, '0');
+  return parseDateTime(`${year}-${month}-${day}T${hour}:${minute}`);
+};
+
+const dateValueToDate = (dateValue) => {
+  if (!dateValue) return null;
+  return new Date(dateValue.year, dateValue.month - 1, dateValue.day, dateValue.hour || 0, dateValue.minute || 0);
+};
+
+export default function CreateAssignmentPage({
+  session,
+  classes,
+  setOpen,
+  isEdit,
+  assignmentData,
+}) {
   const supabase = createClient();
+
+  // need to complete
   const [formData, setFormData] = React.useState({
-    classId: "",
-    className: "",
-    title: "",
-    description: "",
+    classId: isEdit ? assignmentData.class_id : "",
+    className: isEdit ? assignmentData.class_name : "",
+    title: isEdit ? assignmentData.title : "",
+    description: isEdit ? assignmentData.description : "",
 
     selectedStudentIds: [],
     codeTemplate:
       "// Write your code template here\nfunction example() {\n  // This line can be locked\n  console.log('Hello world');\n}\n",
-    dueDate: null,
-    startDate: null,
-    lockedLines: [],
-    hiddenLines: [],
-    allowLateSubmission: false,
-    autoGrade: false,
-    allowAutocomplete: false,
-    showResults: false,
-    allowCopyPaste: false,
-    checkStyle: false,
+    dueDate: isEdit ? new Date(assignmentData.due_at) : null,
+    startDate: isEdit ? new Date(assignmentData.open_at) : null,
+    lockedLines: isEdit ? assignmentData.locked_lines : [],
+    hiddenLines: isEdit ? assignmentData.hidden_lines : [],
+    allowLateSubmission: isEdit ? assignmentData.allow_late_submission : false,
+    allowAutocomplete: isEdit ? assignmentData.allow_auto_complete : false,
+    autoGrade: isEdit ? assignmentData.auto_grade : false,
+    showResults: isEdit ? assignmentData.show_results : false,
+    allowCopyPaste: isEdit ? assignmentData.allow_copy_paste : false,
+    checkStyle: isEdit ? assignmentData.check_style : false,
   });
 
   const [selectedFile, setSelectedFile] = React.useState(1);
-  const [selectedLanguage, setSelectedLanguage] = React.useState();
+  const [selectedLanguage, setSelectedLanguage] = React.useState(
+    isEdit ? assignmentData.language : "java"
+  );
   const editorRef = React.useRef(null);
   const descriptionRef = useRef(null);
   const fileInputRef = React.useRef(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false); // For submission loading state
   const [isLoading, setIsLoading] = React.useState(false);
   const [students, setStudents] = useState([]);
-  const [startDate, setStartDate] = useState(null);
-  const [dueDate, setDueDate] = useState(null);
+  const [startDate, setStartDate] = useState(
+    isEdit ? dateToDateValue(assignmentData.open_at) : null
+  );
+  const [dueDate, setDueDate] = useState(
+    isEdit ? dateToDateValue(assignmentData.due_at) : null
+  );
   const [showPreviewModal, setShowPreviewModal] = React.useState(false);
   const [assignmentPreviewData, setAssignmentPreviewData] =
     React.useState(null);
   const router = useRouter();
   const [testcases, setTestcases] = useState([]);
+  const [dateErrors, setDateErrors] = useState({
+    startDate: "",
+    dueDate: "",
+  });
 
+  // Date validation functions
+  const validateDates = (newStartDate, newDueDate) => {
+    const errors = { startDate: "", dueDate: "" };
+    const now = new Date();
+    
+    // Convert DateValue to Date for comparison
+    const startDateJS = dateValueToDate(newStartDate);
+    const dueDateJS = dateValueToDate(newDueDate);
+    
+    // Check if start date is in the past
+    if (startDateJS && startDateJS < now) {
+      errors.startDate = "Start date must be in the future";
+    }
+    
+    // Check if due date is before start date
+    if (startDateJS && dueDateJS && dueDateJS <= startDateJS) {
+      errors.dueDate = "Due date must be after start date";
+    }
+    
+    // Check if due date is in the past
+    if (dueDateJS && dueDateJS < now) {
+      errors.dueDate = "Due date must be in the future";
+    }
+    
+    setDateErrors(errors);
+    return !errors.startDate && !errors.dueDate;
+  };
+
+  const handleStartDateChange = (date) => {
+    setStartDate(date);
+    validateDates(date, dueDate);
+  };
+
+  const handleDueDateChange = (date) => {
+    setDueDate(date);
+    validateDates(startDate, date);
+  };
+
+  useEffect(() => {
+    if (isEdit) {
+      editorRef.current?.setValue(assignmentData.code_template);
+      console.log("description:", assignmentData.description);
+      descriptionRef.current?.commands?.setContent(assignmentData.description);
+    }
+  }, [editorRef.current, descriptionRef.current]);
   useEffect(() => {
     const fetchStudents = async () => {
       if (formData.classId) {
@@ -187,6 +268,30 @@ export default function CreateAssignmentPage({ session, classes, setOpen }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate dates before submission
+    if (!validateDates(startDate, dueDate)) {
+      addToast({
+        title: "Invalid Dates",
+        description: "Please fix the date errors before submitting.",
+        color: "danger",
+        duration: 5000,
+        variant: "solid",
+      });
+      return;
+    }
+    
+    if (!startDate || !dueDate) {
+      addToast({
+        title: "Missing Dates",
+        description: "Please select both start and due dates.",
+        color: "danger",
+        duration: 5000,
+        variant: "solid",
+      });
+      return;
+    }
+    
     // setIsSubmitting(true); // Start loading
     console.log("Form submitted:", formData);
     const testing_url = await uploadTestcases();
@@ -201,8 +306,8 @@ export default function CreateAssignmentPage({ session, classes, setOpen }) {
       language: selectedLanguage,
       code_template: code,
       hints: "", // To be implemented
-      open_at: startDate.toString(),
-      due_at: dueDate.toString(),
+      open_at: dateValueToDate(startDate).toISOString(),
+      due_at: dateValueToDate(dueDate).toISOString(),
       created_at: new Date().toISOString(),
       status: "inactive",
       locked_lines: formData.lockedLines,
@@ -252,9 +357,9 @@ export default function CreateAssignmentPage({ session, classes, setOpen }) {
             (studentId) => ({
               assignment_id: newAssignmentId,
               student_id: studentId,
-              start_date: startDate.toString(),
+              start_date: dateValueToDate(startDate).toISOString(),
               title: formData.title,
-              due_date: dueDate.toString(),
+              due_date: dateValueToDate(dueDate).toISOString(),
             })
           );
 
@@ -358,6 +463,7 @@ export default function CreateAssignmentPage({ session, classes, setOpen }) {
     const previewData = {
       title: formData.title || "Untitled Assignment",
       description,
+
       code_template: code || "// No code provided",
       language: selectedLanguage || "java",
     };
@@ -505,26 +611,34 @@ export default function CreateAssignmentPage({ session, classes, setOpen }) {
                 onValueChange={(value) => handleFormChange("title", value)}
               />
               <div className="flex  gap-4 ">
-                <DatePicker
-                  isRequired
-                  hideTimeZone
-                  showMonthAndYearPickers
-                  label="Open Assignment at"
-                  variant="bordered"
-                  granularity="minute"
-                  value={startDate}
-                  onChange={setStartDate}
-                />
-                <DatePicker
-                  hideTimeZone
-                  isRequired
-                  showMonthAndYearPickers
-                  label="Close Assignment at"
-                  variant="bordered"
-                  granularity="minute"
-                  value={dueDate}
-                  onChange={setDueDate}
-                />
+                <div className="flex-1">
+                  <DatePicker
+                    isRequired
+                    hideTimeZone
+                    showMonthAndYearPickers
+                    label="Open Assignment at"
+                    variant="bordered"
+                    granularity="minute"
+                    value={startDate}
+                    onChange={handleStartDateChange}
+                    isInvalid={!!dateErrors.startDate}
+                    errorMessage={dateErrors.startDate}
+                  />
+                </div>
+                <div className="flex-1">
+                  <DatePicker
+                    hideTimeZone
+                    isRequired
+                    showMonthAndYearPickers
+                    label="Close Assignment at"
+                    variant="bordered"
+                    granularity="minute"
+                    value={dueDate}
+                    onChange={handleDueDateChange}
+                    isInvalid={!!dateErrors.dueDate}
+                    errorMessage={dateErrors.dueDate}
+                  />
+                </div>
               </div>
 
               <RichTextEditor
@@ -539,7 +653,7 @@ export default function CreateAssignmentPage({ session, classes, setOpen }) {
                 variant="bordered"
                 label="Class"
                 placeholder="Select a class"
-                selectedKeys={formData.classId ? [formData.classId] : []}
+                selectedKeys={formData.classId ? [String(formData.classId)] : []}
                 onChange={(e) =>
                   handleClassChange(e.target.value, e.target.name)
                 }

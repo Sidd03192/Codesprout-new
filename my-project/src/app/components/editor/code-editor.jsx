@@ -565,7 +565,7 @@ export default function CodeEditor({
 
   return (
     <Editor
-      height={height || "100%"}
+      height="max(500px, 100%)"
       width={"100%"}
       language={language}
       theme="vs-dark"

@@ -39,7 +39,7 @@ export const Landing = () => {
     <>
       <div
         ref={scrollContainerRef}
-        className="max-h-[100vh] overflow-x-hidden relative overflow-y-auto bg-zinc-900"
+        className="max-h-[100vh] overflow-x-hidden relative overflow-y-auto bg-zinc-900 scroll-smooth"
       >
         <BackgroundEffects />
 

@@ -23,6 +23,35 @@ export const Toolbar = ({ editor }) => {
   // Dummy state
   const [_, setRender] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Define available colors
+  const colors = [
+    { name: "Default", value: "#ffffff" },
+    { name: "Red", value: "#ef4444" },
+    { name: "Orange", value: "#f97316" },
+    { name: "Yellow", value: "#eab308" },
+    { name: "Green", value: "#22c55e" },
+    { name: "Blue", value: "#3b82f6" },
+    { name: "Purple", value: "#8b5cf6" },
+    { name: "Pink", value: "#ec4899" },
+    { name: "Gray", value: "#6b7280" },
+  ];
+
+  // Function to set text color
+  const setTextColor = (color) => {
+    if (color === "#000000") {
+      editor.chain().focus().unsetColor().run();
+    } else {
+      editor.chain().focus().setColor(color).run();
+    }
+  };
+
+  // Get current text color or default
+  const getCurrentColor = () => {
+    const currentColor = editor.getAttributes("textStyle").color;
+    return currentColor || "#ffffff";
+  };
+
   const enhanceWithAI = async () => {
     if (!editor) return;
     const userInput = editor.getText();
@@ -186,6 +215,46 @@ export const Toolbar = ({ editor }) => {
           <Icon icon="lucide:superscript" className="text-lg" />
         </Button>
       </Tooltip>
+
+      {/* Text Color */}
+      <Dropdown>
+        <DropdownTrigger>
+          <Button
+            isIconOnly
+            size="sm"
+            variant="light"
+            aria-label="Text Color"
+            className="relative"
+          >
+            <div
+              className="w-6 h-6 rounded-full border border-divider cursor-pointer hover:scale-110 transition-transform"
+              style={{ backgroundColor: getCurrentColor() }}
+            />
+          </Button>
+        </DropdownTrigger>
+        <DropdownMenu
+          aria-label="Text Color Options"
+          className="p-2"
+          itemClasses={{
+            base: "p-0 min-w-0",
+          }}
+        >
+          <DropdownItem key="colors" className="p-2">
+            <div className="grid grid-cols-4 gap-2">
+              {" "}
+              {/* Adjust cols as needed */}
+              {colors.map((color) => (
+                <button
+                  key={color.value}
+                  onClick={() => setTextColor(color.value)}
+                  className="w-6 h-6 rounded-full border border-gray-300 hover:scale-110 transition-transform"
+                  style={{ backgroundColor: color.value }}
+                />
+              ))}
+            </div>
+          </DropdownItem>
+        </DropdownMenu>
+      </Dropdown>
 
       <div className="h-6 w-px bg-divider mx-1"></div>
 
