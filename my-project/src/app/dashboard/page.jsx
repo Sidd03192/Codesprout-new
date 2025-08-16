@@ -206,7 +206,6 @@ export default function Dashboard() {
   }
   // Render the active page component
   const renderActivePage = () => {
-    if (userType === "teacher") {
       switch (activePage) {
         case "overview":
           return <Overview />;
@@ -225,8 +224,7 @@ export default function Dashboard() {
         default:
           return <Overview />;
       }
-    }
-  };
+  }
 
   // Handle page change
   const handlePageChange = (page) => {
@@ -351,4 +349,4 @@ export default function Dashboard() {
       </div>
     </div>
   );
-}
+};
