@@ -8,7 +8,7 @@ import BackgroundEffects from "./background-effects";
 import Pricing from "./pricing";
 import BetaCard from "./cta";
 import Banner from "./banner";
-export const Landing = () => {
+export const Landing = ({ session }) => {
   const [isAtTop, setIsAtTop] = useState(true);
   const scrollContainerRef = useRef(null);
   console.log(isAtTop);
@@ -44,7 +44,7 @@ export const Landing = () => {
         <BackgroundEffects />
 
         {/* You can now pass the isAtTop state to the Navbar if it needs to change styles */}
-        <Navbar isAtTop={isAtTop} />
+        <Navbar isAtTop={isAtTop} session={session} />
         <main>
           <Hero />
           <Bento />

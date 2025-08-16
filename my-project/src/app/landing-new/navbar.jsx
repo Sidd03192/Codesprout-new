@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { Button } from "@heroui/react";
 import "./landing.css";
-export const Navbar = ({ isAtTop }) => {
+export const Navbar = ({ isAtTop, session }) => {
   return (
     <header className="fixed top-0 inset-x-0 z-50">
       <div className="container mx-auto px-6">
@@ -35,9 +35,15 @@ export const Navbar = ({ isAtTop }) => {
             </a>
 
             <Button className="glass rounded-lg transition-transform hover:scale-105 ">
-              <a href="#cta" aria-label="Request a demo">
-                Request a Demo
-              </a>
+              {session?.user ? (
+                <a href="/dashboard" aria-label="Request a demo">
+                  Dashboard
+                </a>
+              ) : (
+                <a href="#cta" aria-label="Request a demo">
+                  Request a Demo
+                </a>
+              )}
             </Button>
           </div>
         </nav>

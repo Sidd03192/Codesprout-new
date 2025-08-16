@@ -1,6 +1,5 @@
 "use client";
 
-
 import { createClient } from "../../utils/supabase/client";
 import { useEffect, useState } from "react";
 import { Landing } from "./landing-new/landing";
@@ -44,7 +43,7 @@ export default function Home() {
       
     </div> */}
       {/* <LandingPage></LandingPage> */}
-      <Landing />
+      <Landing session={session} />
     </>
   );
 }

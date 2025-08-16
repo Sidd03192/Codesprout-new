@@ -745,7 +745,6 @@ export default function CreateAssignmentPage({
       created_at: new Date().toISOString(),
       status: "inactive",
       locked_lines: formData.lockedLines,
-      hidden_lines: formData.hiddenLines,
       allow_late_submission: formData.allowLateSubmission,
       allow_copy_paste: formData.allowCopyPaste,
       allow_auto_complete: formData.allowAutocomplete,
