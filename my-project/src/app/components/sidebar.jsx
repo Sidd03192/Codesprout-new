@@ -29,13 +29,10 @@ export const Sidebar = ({ isCollapsed, activePage, setActivePage }) => {
       id: "classroom",
       isActive: activePage === "classroom",
     },
-    { icon: "lucide:calendar", label: "Schedule", id: "schedule" },
   ];
 
   const organizationItems = [
     { icon: "lucide:book", label: "Resources" },
-    { icon: "lucide:message-square", label: "Messages", badge: 5 },
-    { icon: "lucide:bell", label: "Notifications", badge: 2 },
     { icon: "lucide:settings", label: "Settings" },
   ];
 
@@ -52,7 +49,7 @@ export const Sidebar = ({ isCollapsed, activePage, setActivePage }) => {
   ];
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto border-b ">
+    <div className="flex h-full flex-col overflow-y-hidden border-b ">
       {/* Logo */}
       <div
         className={`mb-4  px-2 ${

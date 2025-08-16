@@ -43,7 +43,7 @@ export const Landing = ({ session }) => {
       >
         <BackgroundEffects />
 
-        {/* You can now pass the isAtTop state to the Navbar if it needs to change styles */}
+        {/* Need to check role*/}
         <Navbar isAtTop={isAtTop} session={session} />
         <main>
           <Hero />
