@@ -18,11 +18,11 @@ const features = [
     className: "md:col-span-2",
     background: (
       <Image
-        src="/ai-toolkit-dashboard.png"
+        src="/enhance with ai.png"
         alt="AI Toolkit"
         width={500}
         height={300}
-        className="absolute -right-20 -top-20 w-[400px] h-auto object-contain rounded-lg opacity-20 group-hover:opacity-50 transition-opacity duration-300"
+        className="-right-20 -top-20 w-full h-auto object-contain rounded-lg opacity-20 group-hover:opacity-50 transition-opacity duration-300"
       />
     ),
   },
@@ -35,11 +35,11 @@ const features = [
     className: "md:col-span-1",
     background: (
       <Image
-        src="/analytics-dashboard.png"
+        src="/overview.png"
         alt="Analytics"
         width={500}
         height={300}
-        className="absolute -right-10 -bottom-10 w-[200px] h-auto object-contain rounded-lg opacity-20 group-hover:opacity-50 transition-opacity duration-300"
+        className="-right-10 -bottom-10 w-full h-full object-contain rounded-lg opacity-20 group-hover:opacity-50 transition-opacity duration-300"
       />
     ),
   },

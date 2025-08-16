@@ -224,8 +224,7 @@ export default function Dashboard() {
         default:
           return <Overview />;
       }
-    }
-  };
+  }
 
   // Handle page change
   const handlePageChange = (page) => {
@@ -350,4 +349,4 @@ export default function Dashboard() {
       </div>
     </div>
   );
-}
+};
