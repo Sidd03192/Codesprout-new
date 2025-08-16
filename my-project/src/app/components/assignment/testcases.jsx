@@ -1,7 +1,8 @@
+"use client";
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import {
   Upload,
-  File,
+  File as FileIcon,
   CheckCircle,
   XCircle,
   Archive,
@@ -9,18 +10,50 @@ import {
   FolderOpen,
   ChevronRight,
   ChevronDown,
+  Eye,
 } from "lucide-react";
 // JSZip is imported directly from a CDN that serves ES modules.
 // This avoids the need for a local installation or a separate script tag.
 import JSZip from "jszip";
-import { addToast, ScrollShadow, Spinner } from "@heroui/react";
+import {
+  addToast,
+  ScrollShadow,
+  Spinner,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  Button,
+} from "@heroui/react";
+import Editor from "@monaco-editor/react";
 
 export const Testcase = ({ testcases, setTestcases }) => {
   // A single state to hold all file information, including zip contents
   const [dragActive, setDragActive] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [valid, setValid] = useState(true);
+  const [viewingFile, setViewingFile] = useState(null);
+  const [fileContent, setFileContent] = useState("");
+  const [isLoadingContent, setIsLoadingContent] = useState(false);
+  useEffect(() => {
+    console.log("ok");
+    // Check if viewingFile is a valid file object
+    if (viewingFile) {
+      const fetchFileContent = async () => {
+        try {
+          setIsLoadingContent(true);
+          const text = await viewingFile.file.text();
+          console.log("File content:", text);
+          setFileContent(text);
+          setIsLoadingContent(false);
+        } catch (error) {
+          console.error("Failed to read file content:", error);
+          setFileContent("Error: Could not read file content.");
+        }
+      };
 
+      fetchFileContent();
+    }
+  }, [viewingFile]);
   const handleFiles = useCallback(async (files) => {
     setProcessing(true);
     const fileArray = Array.from(files);
@@ -162,8 +195,121 @@ export const Testcase = ({ testcases, setTestcases }) => {
   const getFileIcon = (file) => {
     if (file.isZip) return <Archive className="w-5 h-5 text-purple-500" />;
     if (file.name.endsWith(".java"))
-      return <File className="w-5 h-5 text-orange-500" />;
-    return <File className="w-5 h-5 text-blue-500" />;
+      return <FileIcon className="w-5 h-5 text-orange-500" />;
+    return <FileIcon className="w-5 h-5 text-blue-500" />;
+  };
+
+  const handleViewFile = async (file, zipFile = null) => {
+    setIsLoadingContent(true);
+    setViewingFile({ file, zipFile });
+
+    try {
+      let content = "";
+
+      if (zipFile && file.isZip) {
+        // Reading from zip file
+        const jszip = new JSZip();
+        const zip = await jszip.loadAsync(file.file);
+        const fileInZip = zip.files[zipFile.name];
+        if (fileInZip) {
+          content = await fileInZip.async("string");
+        }
+      } else {
+        // Reading regular file
+        content = await file.file.text();
+      }
+
+      setFileContent(content);
+    } catch (error) {
+      console.error("Error reading file:", error);
+      addToast({
+        title: "Error",
+        description: "Failed to read file content.",
+        duration: 3000,
+        variant: "solid",
+        color: "danger",
+      });
+      setFileContent("// Error reading file content");
+    } finally {
+      setIsLoadingContent(false);
+    }
+  };
+
+  const handleSaveFile = async (newContent) => {
+    if (!viewingFile) return;
+    try {
+      // Create a new File-like object with the updated content
+      const blob = new Blob([newContent], { type: "text/plain" });
+
+      // Create a new file object that mimics the original file structure
+      const updatedFile = new globalThis.File([blob], viewingFile.file.name, {
+        type: "text/plain",
+        lastModified: Date.now(),
+      });
+
+      // Update the testcases state
+      setTestcases((prev) =>
+        prev.map((testcase) => {
+          if (testcase.id === viewingFile.file.id) {
+            return { ...testcase, file: updatedFile };
+          }
+          return testcase;
+        })
+      );
+
+      setFileContent(newContent);
+
+      addToast({
+        title: "Success",
+        description: "File saved successfully.",
+        duration: 3000,
+        variant: "solid",
+        color: "success",
+      });
+    } catch (error) {
+      console.error("Error saving file:", error);
+      addToast({
+        title: "Error",
+        description: "Failed to save file.",
+        duration: 3000,
+        variant: "solid",
+        color: "danger",
+      });
+    }
+  };
+
+  const getLanguageFromFileName = (fileName) => {
+    const extension = fileName.split(".").pop()?.toLowerCase();
+    switch (extension) {
+      case "java":
+        return "java";
+      case "js":
+      case "jsx":
+        return "javascript";
+      case "ts":
+      case "tsx":
+        return "typescript";
+      case "py":
+        return "python";
+      case "cpp":
+      case "cc":
+      case "cxx":
+        return "cpp";
+      case "c":
+        return "c";
+      case "html":
+        return "html";
+      case "css":
+        return "css";
+      case "json":
+        return "json";
+      case "xml":
+        return "xml";
+      case "sql":
+        return "sql";
+      default:
+        return "plaintext";
+    }
   };
 
   return (
@@ -213,48 +359,100 @@ export const Testcase = ({ testcases, setTestcases }) => {
             <div>
               {testcases.map((file) => (
                 <React.Fragment key={file.id}>
-                  <div
-                    className={`flex items-center p-3 rounded-lg transition-colors border border-border ${
-                      file.isZip ? "cursor-pointer" : "cursor-default"
-                    }`}
-                    onClick={() => file.isZip && toggleZipContents(file.id)}
+                  <Popover
+                    placement="left"
+                    onOpenChange={() => setViewingFile(file)}
                   >
-                    <div className="flex-shrink-0 mr-4">
-                      {file.isZip ? (
-                        file.isExpanded ? (
-                          <ChevronDown className="w-5 h-5 text-purple-600" />
+                    <div
+                      className={`flex items-center p-3 rounded-lg transition-colors border border-border ${
+                        file.isZip ? "cursor-pointer" : "cursor-default"
+                      }`}
+                      onClick={() => file.isZip && toggleZipContents(file.id)}
+                    >
+                      <div className="flex-shrink-0 mr-4">
+                        {file.isZip ? (
+                          file.isExpanded ? (
+                            <ChevronDown className="w-5 h-5 text-purple-600" />
+                          ) : (
+                            <ChevronRight className="w-5 h-5 text-purple-600" />
+                          )
                         ) : (
-                          <ChevronRight className="w-5 h-5 text-purple-600" />
-                        )
-                      ) : (
-                        getFileIcon(file)
-                      )}
-                    </div>
+                          getFileIcon(file)
+                        )}
+                      </div>
 
-                    <div className="flex-1 min-w-0">
-                      <h3
-                        className={`text-base font-medium  truncate ${
-                          valid ? "text-success" : ""
-                        }`}
-                      >
-                        {file.name}
-                      </h3>
-                      <div className="flex items-center mt-1 text-xs ">
-                        <span>{formatFileSize(file.size)}</span>
+                      <div className="flex-1 min-w-0">
+                        <h3
+                          className={`text-base font-medium  truncate ${
+                            valid ? "text-success" : ""
+                          }`}
+                        >
+                          {file.name}
+                        </h3>
+                        <div className="flex items-center mt-1 text-xs ">
+                          <span>{formatFileSize(file.size)}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center ml-4 space-x-1">
+                        {!file.isZip && (
+                          <PopoverTrigger asChild>
+                            <button
+                              onClick={() => setViewingFile(file)}
+                              className="p-2 text-blue-500 hover:bg-blue-500/10 rounded-full transition-colors"
+                              title="View file content"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                          </PopoverTrigger>
+                        )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeFile(file.id);
+                          }}
+                          className="p-2 text-red-500 hover:bg-red-500/10 rounded-full transition-colors"
+                          title="Remove file"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
-
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeFile(file.id);
-                      }}
-                      className="ml-4 p-2 text-red-500 hover:bg-red-500/10 rounded-full transition-colors"
-                      title="Remove file"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                    <PopoverContent className="min-h-xl min-w-xl">
+                      {isLoadingContent ? (
+                        <Spinner color="primary" />
+                      ) : (
+                        <>
+                          <Editor
+                            height="40vh"
+                            language={getLanguageFromFileName(file.name)}
+                            value={fileContent}
+                            onChange={(value) => setFileContent(value || "")}
+                            theme="vs-dark"
+                            options={{
+                              minimap: { enabled: true },
+                              fontSize: 14,
+                              lineNumbers: "on",
+                              roundedSelection: false,
+                              scrollBeyondLastLine: false,
+                              automaticLayout: true,
+                              wordWrap: "on",
+                              wrappingIndent: "indent",
+                            }}
+                          />
+                          <Button
+                            className="absolute bottom-4 right-4 z-10"
+                            size="sm"
+                            color="primary"
+                            variant="flat"
+                            onPress={() => handleSaveFile(fileContent)}
+                          >
+                            Save File
+                          </Button>
+                        </>
+                      )}
+                    </PopoverContent>
+                  </Popover>
 
                   {/* Expanded Zip Contents */}
                   {file.isExpanded && (
@@ -267,7 +465,7 @@ export const Testcase = ({ testcases, setTestcases }) => {
                               className="flex items-center justify-between p-2  rounded-md"
                             >
                               <div className="flex items-center">
-                                <File
+                                <FileIcon
                                   className={`w-4 h-4 mr-2 ${
                                     content.isTestJava
                                       ? "text-green-500"

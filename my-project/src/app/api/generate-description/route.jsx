@@ -61,8 +61,8 @@ export async function POST(req) {
       ? `Current content: ${prompt}\n\nModification request: ${followUp}\n\nPlease modify the content according to the request while preserving the structure and format.`
       : `Original description: ${prompt}\n\nPlease enhance this according to the system instructions.`;
 
-    const stream = await openai.chat.completions.create({
-      model: "gpt-5-nano",
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
@@ -78,45 +78,16 @@ export async function POST(req) {
       top_p: 0.9,
       presence_penalty: 0.1,
       frequency_penalty: 0.1,
-      stream: true,
     });
 
-    const encoder = new TextEncoder();
-    const readable = new ReadableStream({
-      async start(controller) {
-        try {
-          let fullContent = "";
-          for await (const chunk of stream) {
-            const content = chunk.choices[0]?.delta?.content || "";
-            if (content) {
-              fullContent += content;
-              // Send raw markdown delta for live preview
-              const dataObj = { content, partial: true };
-              const jsonStr = JSON.stringify(dataObj);
+    const content = completion.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error("No content received from AI");
+    }
 
-              controller.enqueue(encoder.encode(`data: ${jsonStr}\n\n`));
-            }
-          }
-          // Send final rendered HTML
-          const finalHtml = marked(fullContent);
-          const finalDataObj = { html: finalHtml, partial: false };
-          const finalJsonStr = JSON.stringify(finalDataObj);
-          controller.enqueue(encoder.encode(`data: ${finalJsonStr}\n\n`));
-          controller.close();
-        } catch (error) {
-          console.error("Streaming error:", error);
-          controller.error(error);
-        }
-      },
-    });
+    const html = marked(content);
+    return NextResponse.json({ html });
 
-    return new Response(readable, {
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-      },
-    });
   } catch (err) {
     console.error("AI enhancement error:", err);
     return NextResponse.json(
