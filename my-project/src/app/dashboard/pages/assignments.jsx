@@ -156,11 +156,12 @@ export const Assignments = ({ session, classes, initialAssignments }) => {
                   <h1 className="text-xl font-semibold">Assignment Editor</h1>
                 </div>
               </ModalHeader>
-              <EditAssignmentPage
+              <CreateAssignmentPage
                 session={session}
                 classes={classes}
-                assignment={assignmentToEdit}
-                onClose={() => setEditModalOpen(false)}
+                assignmentData={assignmentToEdit}
+                setOpen={setEditModalOpen}
+                isEdit={true}
               />
             </ModalContent>
           </Modal>

@@ -61,7 +61,9 @@ body {
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid hsl(var(--foreground) / 0.12);
 }
-
+html {
+  scroll-behavior: smooth;
+}
 .card-glass {
   background: hsl(var(--foreground) / 0.06);
   backdrop-filter: blur(16px);
@@ -80,7 +82,7 @@ body {
 
 /* This creates the glow effect as a separate layer behind the container */
 .text-glow-container::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 70%;
   left: 5%;
@@ -88,42 +90,40 @@ body {
   z-index: -1; /* Places the glow behind the container's content */
 
   /* Your glow styles */
-  width: 150%; 
+  width: 150%;
   height: 150%;
   background: radial-gradient(
     circle,
-    hsl(var(--brand) / 0.6), /* Your brand color */
-    transparent 30%
+    hsl(var(--brand) / 0.6),
+    /* Your brand color */ transparent 30%
   );
   filter: blur(120px);
 }
 
-
 .hero-glow::before {
-  content: '';
+  content: "";
   position: absolute;
   /* Position the glow's center slightly lower than the container's center */
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  
+
   /* Make the glow effect larger than the container itself */
-  width: 150%; 
+  width: 150%;
   height: 150%;
-  
+
   /* The radial gradient using your brand's violet color */
   background: radial-gradient(
     circle,
-    hsl(var(--brand-2) / 0.6), /* Semi-transparent violet */
-    transparent 50%          /* Fade to transparent */
+    hsl(var(--brand-2) / 0.6),
+    /* Semi-transparent violet */ transparent 50% /* Fade to transparent */
   );
-  
+
   /* Soften the gradient into a glow and place it behind the content */
   filter: blur(120px);
   z-index: -1; /* This is the key to putting it behind the image */
 }
 /* Themed buttons */
-
 
 .hero-button {
   border: 1px solid hsl(var(--foreground) / 0.12);
@@ -236,7 +236,12 @@ body {
   inset: -2px;
   border-radius: inherit;
   padding: 2px;
-  background: linear-gradient(45deg, transparent, hsl(var(--primary)) / 0.1, transparent);
+  background: linear-gradient(
+    45deg,
+    transparent,
+    hsl(var(--primary)) / 0.1,
+    transparent
+  );
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: xor;
   opacity: 0;
@@ -274,7 +279,8 @@ body {
 
 /* Floating animation for particles */
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0px) rotate(0deg);
   }
   25% {
@@ -294,11 +300,13 @@ body {
 
 /* Pulse glow effect */
 @keyframes pulse-glow {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 20px hsl(var(--primary) / 0.1);
   }
   50% {
-    box-shadow: 0 0 40px hsl(var(--primary) / 0.3), 0 0 60px hsl(var(--primary) / 0.1);
+    box-shadow: 0 0 40px hsl(var(--primary) / 0.3),
+      0 0 60px hsl(var(--primary) / 0.1);
   }
 }
 
@@ -338,6 +346,3 @@ body {
     opacity: 1;
   }
 }
-
-
-
