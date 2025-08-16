@@ -22,7 +22,11 @@ export const Toolbar = ({ editor }) => {
   const [imageUrl, setImageUrl] = useState("");
   // Dummy state
   const [_, setRender] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isAILoading, setIsAILoading] = useState(false);
+  const [originalContent, setOriginalContent] = useState(null);
+  const [showAIActions, setShowAIActions] = useState(false);
+  const [followUpInput, setFollowUpInput] = useState("");
+  const [showFollowUp, setShowFollowUp] = useState(false);
 
   // Define available colors
   const colors = [
@@ -52,18 +56,146 @@ export const Toolbar = ({ editor }) => {
     return currentColor || "#ffffff";
   };
 
+  const handleStreamingResponse = async (response) => {
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let isFirstChunk = true;
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        
+        // Keep the last incomplete line in the buffer
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const jsonStr = line.slice(6).trim();
+              if (jsonStr) {
+                const data = JSON.parse(jsonStr);
+                
+                if (data.partial) {
+                  // Stream raw markdown text for live preview
+                  if (data.content) {
+                    if (isFirstChunk) {
+                      // Clear editor and add first chunk
+                      editor.commands.setContent('');
+                      editor.commands.insertContent(data.content, { parseOptions: { preserveWhitespace: 'full' } });
+                      isFirstChunk = false;
+                    } else {
+                      // Append subsequent markdown chunks
+                      editor.commands.insertContent(data.content, { parseOptions: { preserveWhitespace: 'full' } });
+                    }
+                  }
+                } else {
+                  // Final complete response - replace with rendered HTML
+                  if (data.html) {
+                    editor.commands.setContent(data.html, "html");
+                  }
+                }
+              }
+            } catch (e) {
+              console.log('Skipping malformed JSON:', line);
+            }
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  };
+
   const enhanceWithAI = async () => {
-    if (!editor) return;
-    const userInput = editor.getText();
-    const res = await fetch("/api/enhance-description", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt: userInput }),
-    });
+    if (!editor || isAILoading) return;
 
-    const { html } = await res.json();
+    const currentText = editor.getText().trim();
+    if (!currentText) {
+      alert("Please enter some content to enhance.");
+      return;
+    }
 
-    editor.commands.setContent(html, "html");
+    setIsAILoading(true);
+    setOriginalContent(editor.getHTML());
+    editor.setEditable(false);
+
+    try {
+      const res = await fetch("/api/enhance-description", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: currentText }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+
+      await handleStreamingResponse(res);
+      setShowAIActions(true);
+      
+      console.log("AI Enhancement completed with streaming");
+    } catch (error) {
+      console.error("AI enhancement failed:", error);
+      alert("Enhancement failed. Please try again.");
+      editor.setEditable(true);
+    } finally {
+      setIsAILoading(false);
+    }
+  };
+
+  const acceptChanges = () => {
+    setOriginalContent(null);
+    setShowAIActions(false);
+    setShowFollowUp(false);
+    editor.setEditable(true);
+  };
+
+  const undoChanges = () => {
+    if (originalContent) {
+      editor.commands.setContent(originalContent, "html");
+    }
+    setOriginalContent(null);
+    setShowAIActions(false);
+    setShowFollowUp(false);
+    editor.setEditable(true);
+  };
+
+  const handleFollowUp = async () => {
+    if (!followUpInput.trim() || !editor || isAILoading) return;
+
+    setIsAILoading(true);
+    setShowFollowUp(false);
+
+    try {
+      const currentContent = editor.getText();
+      const res = await fetch("/api/enhance-description", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: currentContent,
+          followUp: followUpInput
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+
+      await handleStreamingResponse(res);
+      setFollowUpInput("");
+      
+      console.log("Follow-up enhancement completed with streaming");
+    } catch (error) {
+      console.error("Follow-up enhancement failed:", error);
+      alert("Follow-up enhancement failed. Please try again.");
+    } finally {
+      setIsAILoading(false);
+    }
   };
 
   useEffect(() => {
@@ -104,7 +236,10 @@ export const Toolbar = ({ editor }) => {
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-0.5 p-2 bg-content1">
+    <div
+      className="flex flex-wrap items-center gap-0.5 p-2 bg-content1"
+      style={{ opacity: isAILoading ? 0.7 : 1 }}
+    >
       {/* Heading 1 */}
 
       <Tooltip content="Heading 1" placement="top">
@@ -217,8 +352,8 @@ export const Toolbar = ({ editor }) => {
       </Tooltip>
 
       {/* Text Color */}
-      <Dropdown>
-        <DropdownTrigger>
+      <Popover>
+        <PopoverTrigger>
           <Button
             isIconOnly
             size="sm"
@@ -231,15 +366,15 @@ export const Toolbar = ({ editor }) => {
               style={{ backgroundColor: getCurrentColor() }}
             />
           </Button>
-        </DropdownTrigger>
-        <DropdownMenu
+        </PopoverTrigger>
+        <PopoverContent
           aria-label="Text Color Options"
           className="p-2"
           itemClasses={{
             base: "p-0 min-w-0",
           }}
         >
-          <DropdownItem key="colors" className="p-2">
+          <div key="colors" className="p-2">
             <div className="grid grid-cols-4 gap-2">
               {" "}
               {/* Adjust cols as needed */}
@@ -252,9 +387,9 @@ export const Toolbar = ({ editor }) => {
                 />
               ))}
             </div>
-          </DropdownItem>
-        </DropdownMenu>
-      </Dropdown>
+          </div>
+        </PopoverContent>
+      </Popover>
 
       <div className="h-6 w-px bg-divider mx-1"></div>
 
@@ -347,16 +482,105 @@ export const Toolbar = ({ editor }) => {
           onPress={enhanceWithAI}
           variant={"light"}
           color={"default"}
-          aria-label="Code Block"
+          aria-label="Enhance with AI"
           className="shadow-lg"
+          isDisabled={isAILoading}
+          isLoading={isAILoading}
         >
-          <Icon
-            icon="lucide:wand-sparkles"
-            className="text-lg"
-            color="#8b5cf6"
-          />
+          {!isAILoading && (
+            <Icon
+              icon="lucide:wand-sparkles"
+              className="text-lg"
+              color="#8b5cf6"
+            />
+          )}
         </Button>
       </Tooltip>
+
+      {/* AI Action Buttons */}
+      {showAIActions && (
+        <>
+          <div className="h-6 w-[.5px] bg-divider mx-1"></div>
+
+          <Tooltip content="Accept AI Changes" placement="top">
+            <Button
+              isIconOnly
+              size="sm"
+              onPress={acceptChanges}
+              variant="light"
+              color="success"
+              aria-label="Accept Changes"
+            >
+              <Icon icon="lucide:check" className="text-lg" />
+            </Button>
+          </Tooltip>
+
+          <Tooltip content="Undo AI Changes" placement="top">
+            <Button
+              isIconOnly
+              size="sm"
+              onPress={undoChanges}
+              variant="light"
+              color="danger"
+              aria-label="Undo Changes"
+            >
+              <Icon icon="lucide:undo" className="text-lg" />
+            </Button>
+          </Tooltip>
+
+          <Popover isOpen={showFollowUp} onOpenChange={setShowFollowUp}>
+            <PopoverTrigger>
+              <Button
+                isIconOnly
+                size="sm"
+                variant="light"
+                color="primary"
+                aria-label="Follow-up Question"
+                onPress={() => setShowFollowUp(true)}
+              >
+                <Icon icon="lucide:message-circle" className="text-lg" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent>
+              <div className="p-3 flex flex-col gap-2 min-w-[250px]">
+                <Input
+                  label="Follow-up request"
+                  size="sm"
+                  placeholder="e.g., Make it more concise..."
+                  value={followUpInput}
+                  onValueChange={setFollowUpInput}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleFollowUp();
+                    }
+                  }}
+                />
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    color="primary"
+                    onPress={handleFollowUp}
+                    isDisabled={!followUpInput.trim() || isAILoading}
+                    isLoading={isAILoading}
+                    className="flex-1"
+                  >
+                    Enhance
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="light"
+                    onPress={() => setShowFollowUp(false)}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </>
+      )}
     </div>
   );
 };

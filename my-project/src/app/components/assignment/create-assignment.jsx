@@ -50,16 +50,22 @@ const dateToDateValue = (date) => {
   if (!date) return null;
   const jsDate = date instanceof Date ? date : new Date(date);
   const year = jsDate.getFullYear();
-  const month = String(jsDate.getMonth() + 1).padStart(2, '0');
-  const day = String(jsDate.getDate()).padStart(2, '0');
-  const hour = String(jsDate.getHours()).padStart(2, '0');
-  const minute = String(jsDate.getMinutes()).padStart(2, '0');
+  const month = String(jsDate.getMonth() + 1).padStart(2, "0");
+  const day = String(jsDate.getDate()).padStart(2, "0");
+  const hour = String(jsDate.getHours()).padStart(2, "0");
+  const minute = String(jsDate.getMinutes()).padStart(2, "0");
   return parseDateTime(`${year}-${month}-${day}T${hour}:${minute}`);
 };
 
 const dateValueToDate = (dateValue) => {
   if (!dateValue) return null;
-  return new Date(dateValue.year, dateValue.month - 1, dateValue.day, dateValue.hour || 0, dateValue.minute || 0);
+  return new Date(
+    dateValue.year,
+    dateValue.month - 1,
+    dateValue.day,
+    dateValue.hour || 0,
+    dateValue.minute || 0
+  );
 };
 
 export default function CreateAssignmentPage({
@@ -78,7 +84,7 @@ export default function CreateAssignmentPage({
     title: isEdit ? assignmentData.title : "",
     description: isEdit ? assignmentData.description : "",
 
-    selectedStudentIds: [],
+    selectedStudentIds: isEdit ? assignmentData.student_ids : [],
     codeTemplate:
       "// Write your code template here\nfunction example() {\n  // This line can be locked\n  console.log('Hello world');\n}\n",
     dueDate: isEdit ? new Date(assignmentData.due_at) : null,
@@ -118,31 +124,30 @@ export default function CreateAssignmentPage({
     startDate: "",
     dueDate: "",
   });
-
   // Date validation functions
   const validateDates = (newStartDate, newDueDate) => {
     const errors = { startDate: "", dueDate: "" };
     const now = new Date();
-    
+
     // Convert DateValue to Date for comparison
     const startDateJS = dateValueToDate(newStartDate);
     const dueDateJS = dateValueToDate(newDueDate);
-    
+
     // Check if start date is in the past
     if (startDateJS && startDateJS < now) {
       errors.startDate = "Start date must be in the future";
     }
-    
+
     // Check if due date is before start date
     if (startDateJS && dueDateJS && dueDateJS <= startDateJS) {
       errors.dueDate = "Due date must be after start date";
     }
-    
+
     // Check if due date is in the past
     if (dueDateJS && dueDateJS < now) {
       errors.dueDate = "Due date must be in the future";
     }
-    
+
     setDateErrors(errors);
     return !errors.startDate && !errors.dueDate;
   };
@@ -163,6 +168,8 @@ export default function CreateAssignmentPage({
       console.log("description:", assignmentData.description);
       descriptionRef.current?.commands?.setContent(assignmentData.description);
     }
+    editorRef.current?.setValue(formData.codeTemplate);
+    descriptionRef.current?.commands?.setContent(formData.description);
   }, [editorRef.current, descriptionRef.current]);
   useEffect(() => {
     const fetchStudents = async () => {
@@ -221,6 +228,13 @@ export default function CreateAssignmentPage({
 
   const [output, setOutput] = useState("");
   const [isRunning, setIsRunning] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingTestCases, setIsGeneratingTestCases] = useState(false);
+
+  // AI Mode states
+  const [showAIPrompt, setShowAIPrompt] = useState(true);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [isGeneratingAssignment, setIsGeneratingAssignment] = useState(false);
 
   const runCode = async () => {
     const code = editorRef.current?.getValue?.();
@@ -250,6 +264,224 @@ export default function CreateAssignmentPage({
     }
   };
 
+  const handleTemplateStreaming = async (response) => {
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    // Get the editor and its model ONCE before the loop
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    try {
+      // Clear editor at start
+      editor.setValue("");
+      const model = editor.getModel();
+      if (!model) return;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            try {
+              const jsonStr = line.slice(6).trim();
+              if (jsonStr) {
+                const data = JSON.parse(jsonStr);
+                if (data.partial && data.content) {
+                  // EFFICIENT: Insert new content at the end without reading or replacing
+                  const lastLine = model.getLineCount();
+                  const lastCol = model.getLineMaxColumn(lastLine);
+
+                  // This tells Monaco to insert the new text at the very end
+                  model.applyEdits([
+                    {
+                      range: new monaco.Range(
+                        lastLine,
+                        lastCol,
+                        lastLine,
+                        lastCol
+                      ),
+                      text: data.content,
+                    },
+                  ]);
+
+                  // Optional but recommended: Automatically scroll to the new content
+                  editor.revealPosition({
+                    lineNumber: model.getLineCount(),
+                    column: model.getLineMaxColumn(model.getLineCount()),
+                  });
+                }
+              }
+            } catch (e) {
+              console.log("Skipping malformed JSON:", line);
+            }
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  };
+  const generateWithAI = async () => {
+    console.log("Generating with AI...");
+    const description =
+      descriptionRef.current?.getText?.() || formData.description;
+
+    if (!description || description.trim() === "") {
+      console.log("Description Required");
+      addToast({
+        title: "Description Required",
+        description:
+          "Please provide a problem description before generating code.",
+        color: "warning",
+        duration: 3000,
+        variant: "solid",
+      });
+      return;
+    }
+
+    try {
+      setIsGenerating(true);
+
+      const response = await fetch("/api/generate-template", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          description: description,
+          language: selectedLanguage || "java",
+        }),
+      });
+
+      console.log("AI response:", response);
+      if (!response.ok) {
+        throw new Error("Failed to generate template");
+      }
+
+      await handleTemplateStreaming(response);
+
+      addToast({
+        title: "Template Generated",
+        description: "Your Code template has been created !",
+        color: "success",
+        duration: 3000,
+        variant: "solid",
+      });
+    } catch (error) {
+      console.error("AI generation failed:", error);
+      addToast({
+        title: "Generation Failed",
+        description: "Failed to generate code template. Please try again.",
+        color: "danger",
+        duration: 3000,
+        variant: "solid",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const generateTestCases = async () => {
+    const code = editorRef.current?.getValue?.();
+    const description =
+      descriptionRef.current?.getText?.() || formData.description;
+
+    if (!code || code.trim() === "") {
+      addToast({
+        title: "Code Required",
+        description:
+          "Please provide code in the editor before generating test cases.",
+        color: "warning",
+        duration: 3000,
+        variant: "solid",
+      });
+      return;
+    }
+
+    if (!description || description.trim() === "") {
+      addToast({
+        title: "Description Required",
+        description:
+          "Please provide a problem description before generating test cases.",
+        color: "warning",
+        duration: 3000,
+        variant: "solid",
+      });
+      return;
+    }
+
+    try {
+      setIsGeneratingTestCases(true);
+
+      const response = await fetch("/api/generate-test-cases", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          assignmentDescription: `${description}\n\nCode Template:\n${code}`,
+          language: selectedLanguage || "java",
+          prompt: description,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to generate test cases");
+      }
+
+      const data = await response.json();
+
+      if (data.testFileContent) {
+        // Create a test file and add it to testcases
+        const testFile = new File(
+          [data.testFileContent],
+          data.filename || "test.java",
+          { type: "text/java" }
+        );
+
+        const testcaseObject = {
+          id: Date.now(),
+          name: data.filename || "test.java",
+          size: testFile.size,
+          type: testFile.type,
+          uploadTime: new Date().toLocaleString(),
+          isZip: false,
+          file: testFile,
+          contents: [],
+          isExpanded: false,
+        };
+
+        setTestcases([testcaseObject]);
+
+        addToast({
+          title: "Test Cases Generated",
+          description: "Test cases have been generated based on your code!",
+          color: "success",
+          duration: 3000,
+          variant: "solid",
+        });
+      }
+    } catch (error) {
+      console.error("Test case generation failed:", error);
+      addToast({
+        title: "Generation Failed",
+        description: "Failed to generate test cases. Please try again.",
+        color: "danger",
+        duration: 3000,
+        variant: "solid",
+      });
+    } finally {
+      setIsGeneratingTestCases(false);
+    }
+  };
+
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -266,9 +498,211 @@ export default function CreateAssignmentPage({
     fileInputRef.current?.click();
   };
 
+  // Complete AI Assignment Generation
+  const generateCompleteAssignment = async () => {
+    if (!aiPrompt.trim()) {
+      addToast({
+        title: "Prompt Required",
+        description:
+          "Please enter a description of the assignment you want to create.",
+        color: "warning",
+        duration: 3000,
+        variant: "solid",
+      });
+      return;
+    }
+
+    try {
+      setIsGeneratingAssignment(true);
+
+      // Generate all components in parallel
+      const [metadataRes, descriptionRes, codeRes, testRes] = await Promise.all(
+        [
+          // Step 1: Generate assignment metadata
+          fetch("/api/generate-complete-assignment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              prompt: aiPrompt,
+              classes: classes,
+              language: selectedLanguage || "java",
+            }),
+          }),
+
+          // Step 2: Generate description
+          fetch("/api/generate-description", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt: aiPrompt }),
+          }),
+
+          // Step 3: Generate code template
+          fetch("/api/generate-code-template", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              description: aiPrompt,
+              language: selectedLanguage || "java",
+            }),
+          }),
+
+          // Step 4: Generate test cases
+          fetch("/api/generate-test-cases", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              assignmentDescription: aiPrompt,
+              language: selectedLanguage || "java",
+              prompt: aiPrompt,
+            }),
+          }),
+        ]
+      );
+
+      // Check all responses
+      if (!metadataRes.ok || !descriptionRes.ok || !codeRes.ok || !testRes.ok) {
+        throw new Error("Failed to generate assignment components");
+      }
+
+      // Parse all responses
+      const [metadata, description, codeTemplate, testCase] = await Promise.all(
+        [
+          metadataRes.json(),
+          descriptionRes.json(),
+          codeRes.json(),
+          testRes.json(),
+        ]
+      );
+
+      // Populate form with generated data
+      populateFormWithAIData(metadata, description, codeTemplate, testCase);
+
+      // Hide AI prompt and show form
+      setShowAIPrompt(false);
+
+      addToast({
+        title: "Assignment Generated Successfully!",
+        description:
+          "Your complete assignment has been generated. You can now edit any details.",
+        color: "success",
+        duration: 5000,
+        variant: "solid",
+      });
+    } catch (error) {
+      console.error("AI assignment generation failed:", error);
+      addToast({
+        title: "Generation Failed",
+        description:
+          "Failed to generate complete assignment. Please try again.",
+        color: "danger",
+        duration: 3000,
+        variant: "solid",
+      });
+    } finally {
+      setIsGeneratingAssignment(false);
+    }
+  };
+
+  // Helper function to populate form with AI-generated data
+  const populateFormWithAIData = (
+    metadata,
+    description,
+    codeTemplate,
+    testCase
+  ) => {
+    console.log(
+      metadata,
+      description,
+      codeTemplate,
+      testCase,
+      "thisis the code generated"
+    );
+
+    // Populate basic form data including description and codetemaplete
+    if (metadata.title) {
+      setFormData((prev) => ({
+        ...prev,
+        title: metadata.title,
+        description: description.html || description,
+        codeTemplate: codeTemplate.skeletonCode || codeTemplate,
+        classId: metadata.classId || metadata.class_id,
+        className: classes.find(
+          (c) => c.id === (metadata.classId || metadata.class_id)
+        )?.name,
+      }));
+    }
+
+    // Set language
+    if (metadata.language) {
+      setSelectedLanguage(metadata.language);
+    }
+
+    // Set dates
+    if (metadata.suggestedOpenDate) {
+      setStartDate(dateToDateValue(new Date(metadata.suggestedOpenDate)));
+    }
+    if (metadata.suggestedDueDate) {
+      setDueDate(dateToDateValue(new Date(metadata.suggestedDueDate)));
+    }
+
+    // Directly update description editor
+    if (description.html) {
+      setTimeout(() => {
+        descriptionRef.current?.commands?.setContent(description.html, "html");
+      }, 100);
+    }
+
+    // Directly update code editor
+    if (codeTemplate.skeletonCode) {
+      setTimeout(() => {
+        editorRef.current?.setValue?.(codeTemplate.skeletonCode);
+      }, 100);
+    }
+
+    // Set rubric
+    if (metadata.rubric) {
+      setSections(metadata.rubric);
+    }
+
+    // Set settings with defaults
+    setFormData((prev) => ({
+      ...prev,
+      autoGrade: metadata.settings?.autoGrade ?? true,
+      checkStyle: metadata.settings?.checkStyle ?? true,
+      allowCopyPaste: metadata.settings?.allowCopyPaste ?? true,
+      showResults: metadata.settings?.showResults ?? true,
+      allowLateSubmission: metadata.settings?.allowLateSubmission ?? false,
+      lockedLines: metadata.lockedLines || [],
+    }));
+
+    // Handle test case file
+    if (testCase.testFileContent) {
+      // Create a test file and add it to testcases
+      const testFile = new File(
+        [testCase.testFileContent],
+        testCase.filename || "test.java",
+        { type: "text/java" }
+      );
+
+      const testcaseObject = {
+        id: Date.now(),
+        name: testCase.filename || "test.java",
+        size: testFile.size,
+        type: testFile.type,
+        uploadTime: new Date().toLocaleString(),
+        isZip: false,
+        file: testFile,
+        contents: [],
+        isExpanded: false,
+      };
+
+      setTestcases([testcaseObject]);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validate dates before submission
     if (!validateDates(startDate, dueDate)) {
       addToast({
@@ -280,7 +714,7 @@ export default function CreateAssignmentPage({
       });
       return;
     }
-    
+
     if (!startDate || !dueDate) {
       addToast({
         title: "Missing Dates",
@@ -291,7 +725,7 @@ export default function CreateAssignmentPage({
       });
       return;
     }
-    
+
     // setIsSubmitting(true); // Start loading
     console.log("Form submitted:", formData);
     const testing_url = await uploadTestcases();
@@ -585,7 +1019,7 @@ export default function CreateAssignmentPage({
       })
     );
   };
-
+  console.log(formData);
   const languages = [
     { key: "python", name: "Python" },
     { key: "java", name: "Java" },
@@ -597,168 +1031,44 @@ export default function CreateAssignmentPage({
   return (
     <div className=" bg-gradient-to-br from-[#1e2b22] via-[#1e1f2b] to-[#2b1e2e]  text-zinc-100">
       <main className="mx-auto w-full p-4 pb-5 custom-scrollbar">
-        <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Assignment  Card */}
-          <Card className="bg-zinc-800/40 p-6 w-full">
-            <h2 className="mb-6 text-xl font-semibold">Assignment Details</h2>
-            <div className="grid  gap-6 lg:grid-cols-2">
-              <Input
-                isRequired
-                label="Assignment Title"
-                placeholder="Enter assignment title"
-                value={formData.title}
-                variant="bordered"
-                onValueChange={(value) => handleFormChange("title", value)}
-              />
-              <div className="flex  gap-4 ">
-                <div className="flex-1">
-                  <DatePicker
-                    isRequired
-                    hideTimeZone
-                    showMonthAndYearPickers
-                    label="Open Assignment at"
-                    variant="bordered"
-                    granularity="minute"
-                    value={startDate}
-                    onChange={handleStartDateChange}
-                    isInvalid={!!dateErrors.startDate}
-                    errorMessage={dateErrors.startDate}
-                  />
-                </div>
-                <div className="flex-1">
-                  <DatePicker
-                    hideTimeZone
-                    isRequired
-                    showMonthAndYearPickers
-                    label="Close Assignment at"
-                    variant="bordered"
-                    granularity="minute"
-                    value={dueDate}
-                    onChange={handleDueDateChange}
-                    isInvalid={!!dateErrors.dueDate}
-                    errorMessage={dateErrors.dueDate}
-                  />
-                </div>
+        {/* AI Assignment Generation (only show when not editing) */}
+        {!isEdit && showAIPrompt && (
+          <Card className="bg-zinc-800/40 p-6 w-full mb-8">
+            <div className="text-center">
+              <div className="mb-4">
+                <Icon
+                  icon="lucide:wand-sparkles"
+                  className="text-4xl text-purple-400 mx-auto mb-2"
+                />
+                <h2 className="text-2xl font-semibold mb-2">
+                  Create Assignment with AI
+                </h2>
+                <p className="text-zinc-400">
+                  Describe the assignment you want to create and grab a cup of
+                  coffee. We'll take care of the rest.
+                </p>
               </div>
 
-              <RichTextEditor
-                className="md:col-span-2 bg-zinc-200 max-h-[400px]"
-                isRequired
-                editorRef={descriptionRef}
-              />
+              <div className="max-w-3xl mx-auto space-y-4">
+                <Textarea
+                  label="Assignment Description"
+                  placeholder="Example: Create a binary search algorithm assignment for my CS201 class, due next Friday. Students should implement an efficient binary search function that handles edge cases and returns the index of the target element."
+                  value={aiPrompt}
+                  onValueChange={setAiPrompt}
+                  variant="bordered"
+                  minRows={4}
+                  maxRows={8}
+                  className="w-full"
+                />
 
-              <Select
-                isRequired
-                className="md:col-span-2 "
-                variant="bordered"
-                label="Class"
-                placeholder="Select a class"
-                selectedKeys={formData.classId ? [String(formData.classId)] : []}
-                onChange={(e) =>
-                  handleClassChange(e.target.value, e.target.name)
-                }
-              >
-                {classes &&
-                  classes.length > 0 &&
-                  classes.map((classInfo) => (
-                    <SelectItem
-                      key={classInfo.id}
-                      value={classInfo.id}
-                      name={classInfo.name}
-                    >
-                      {classInfo.name}
-                    </SelectItem>
-                  ))}
-              </Select>
-            </div>
-
-            {/* Students */}
-
-            {students && formData.classId && (
-              <div className="mt-6">
-                {isLoading ? (
-                  <div className="flex items-center justify-center">
-                    <Spinner />
-                  </div>
-                ) : (
-                  <div>
-                    <div className="mb-2 flex items-center justify-between">
-                      <h3 className="text-medium font-medium">Students</h3>
-                      <Button
-                        className="mb-3"
-                        color="primary"
-                        variant="flat"
-                        onPress={handleSelectAllStudents}
-                      >
-                        {students.length === formData.selectedStudentIds.length
-                          ? "Unselect All"
-                          : "Select All"}
-                      </Button>
-                    </div>
-                    <ScrollShadow className="max-h-[200px]">
-                      <div className="space-y-2">
-                        {students && students.length > 0 ? (
-                          students.map((student) => (
-                            <div
-                              key={student.student_id}
-                              className="flex items-center justify-between rounded-medium border border-zinc-700 p-3"
-                            >
-                              <div className="flex items-center gap-3">
-                                <Checkbox
-                                  isSelected={formData.selectedStudentIds.includes(
-                                    student.student_id
-                                  )}
-                                  onValueChange={() =>
-                                    handleToggleStudent(student.student_id)
-                                  }
-                                />
-                                <div>
-                                  <div className="font-medium">
-                                    {student.full_name}
-                                  </div>
-                                  <div className="text-small text-zinc-400">
-                                    {student.student_email || "No email"}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-small text-red-400 w-full flex justify-center">
-                            This class has no students. Please add students in
-                            the classroom page.
-                          </div>
-                        )}
-                      </div>
-                    </ScrollShadow>
-
-                    {classes.length === 0 && (
-                      <div className="mt-2 text-small text-zinc-400">
-                        {/* Number of selected students of total (total is second) */}
-                        {formData.selectedStudentIds.length} of{" "}
-                        {students.length || "0"} selected
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </Card>
-
-          {/* Code Template and Settings Split Screen */}
-          <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
-            {/* Code Template Section - 60% width */}
-            <Card className="col-span-1 xl:col-span-3 bg-zinc-800/40 ">
-              <div className=" flex items-center justify-between px-6 pt-6">
-                <h2 className="text-xl font-semibold">Code Template</h2>
-                <div className="flex items-center gap-2 ">
+                <div className="flex justify-center gap-4">
                   <Select
-                    placeholder="Select a language"
-                    className="min-w-[120px]"
-                    defaultSelectedKeys={["java"]}
+                    label="Programming Language"
+                    placeholder="Select language"
                     value={selectedLanguage}
-                    isRequired={true}
                     onChange={(e) => setSelectedLanguage(e.target.value)}
+                    variant="bordered"
+                    className="max-w-xs"
                   >
                     {languages.map((lang) => (
                       <SelectItem key={lang.key} value={lang.key}>
@@ -766,270 +1076,501 @@ export default function CreateAssignmentPage({
                       </SelectItem>
                     ))}
                   </Select>
+                </div>
 
+                <div className="flex justify-center gap-4">
                   <Button
                     variant="flat"
                     color="primary"
-                    className="min-w-[100px] "
-                    onPress={triggerFileUpload}
+                    onPress={() => setShowAIPrompt(false)}
+                    isDisabled={isGeneratingAssignment}
                   >
-                    <Icon icon="lucide:upload" className="" />
-                    Upload
+                    Create Manually
                   </Button>
                   <Button
-                    variant="flat"
                     color="secondary"
-                    className="min-w-[130px] "
+                    onPress={generateCompleteAssignment}
+                    isLoading={isGeneratingAssignment}
+                    isDisabled={!aiPrompt.trim()}
                   >
-                    <Icon icon="lucide:wand-sparkles" /> AI Generate
+                    <Icon icon="lucide:wand-sparkles" className="mr-2" />
+                    {isGeneratingAssignment
+                      ? "Generating..."
+                      : "Generate Assignment"}
                   </Button>
-                  <Button
-                    variant="flat"
-                    color="success"
-                    className="min-w-[100px]"
-                    onPress={runCode}
-                    isDisabled={isRunning}
-                  >
-                    <Icon icon="lucide:play" />
-                    {isRunning ? "Running..." : "Run"}
-                  </Button>
-
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".js,.py,.java,.ts,.cs,.cpp,.txt"
-                    className="hidden"
-                    onChange={handleFileUpload}
-                  />
-                </div>
-              </div>
-
-              <div className="w-full flex justify-between pr-6 items-end">
-                <Tabs
-                  color="secondary"
-                  size="lg"
-                  variant="underlined"
-                  defaultSelectedKey={1}
-                  selectedKey={selectedFile}
-                  onSelectionChange={setSelectedFile}
-                  aria-label="Tabs sizes"
-                >
-                  <Tab key={1} title="Student Template"></Tab>
-                </Tabs>
-                <div className="mb-4 text-sm text-zinc-400 flex items-center">
-                  <Icon
-                    icon="lucide:lock"
-                    className="mr-2 text-base text-red-700"
-                  />
-                  <span>
-                    {" "}
-                    {/* It's also good practice to wrap your text in a span */}
-                    Click on the line numbers to lock/unlock lines for students.
-                  </span>
-                </div>
-              </div>
-              <CodeEditor
-                classname="w-full"
-                language={selectedLanguage || "java"}
-                editorRef={editorRef}
-                role="teacher"
-                starterCode={"// this file will be visible to students."}
-                handleHiddenLinesChange={handleHiddenLinesChange}
-                handleLockedLinesChange={handleLockedLinesChange}
-              />
-              {output && (
-                <div className="mt-4 p-4 bg-black text-white rounded-lg">
-                  <h3 className="text-sm text-zinc-400 mb-2">Output:</h3>
-                  <pre className="whitespace-pre-wrap">{output}</pre>
-                </div>
-              )}
-            </Card>
-
-            {/* Assignment Settings & Test Cases - 40% width */}
-            <Card className="col-span-1 xl:col-span-2 bg-zinc-800/40 p-6">
-              <h2 className="mb-6 text-xl font-semibold">
-                Assignment Settings
-              </h2>
-              <Tabs color="default" variant="bordered">
-                {/* Test Cases Section */}
-                <Tab
-                  key="photos"
-                  title={
-                    <div className="flex items-center space-x-1">
-                      <FlaskConical size={15} />
-                      <span>Test Cases</span>
-                    </div>
-                  }
-                >
-                  {" "}
-                  <Testcase testcases={testcases} setTestcases={setTestcases} />
-                </Tab>
-
-                <Tab
-                  key="items"
-                  title={
-                    <div className="flex items-center space-x-1">
-                      <MonitorCog size={15} />
-                      <span>Settings</span>
-                    </div>
-                  }
-                >
-                  <div className=" items-center">
-                    <h3 className="text-lg font-medium">Grading Options</h3>
-                    <p className="text-zinc-400">
-                      Configure how this assignment will be graded.
-                    </p>
-                    <div className="grid grid-cols-2 gap-4 py-4">
-                      <Checkbox
-                        value={formData.autoGrade}
-                        onValueChange={(value) =>
-                          setFormData((prev) => ({ ...prev, autoGrade: value }))
-                        }
-                      >
-                        Auto-grade test cases
-                      </Checkbox>
-                      <Checkbox
-                        value={formData.checkStyle}
-                        onValueChange={(value) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            checkStyle: value,
-                          }))
-                        }
-                      >
-                        Check for code style
-                      </Checkbox>
-
-                      <Checkbox
-                        value={formData.allowCopyPaste}
-                        onValueChange={(value) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            allowCopyPaste: value,
-                          }))
-                        }
-                      >
-                        Allow copy & paste
-                      </Checkbox>
-                    </div>
-                    <div className="w-full flex items-center justify-center">
-                      <Divider className="w-4/5 justify-center" />
-                    </div>
-                    <div className="space-y-4 pt-2 overflow-y-auto max-h-[450px] custom-scrollbar">
-                      <MiniRubric
-                        sections={sections}
-                        handleToggleSectionAutograde={
-                          handleToggleSectionAutograde
-                        }
-                        handleAddItem={handleAddItem}
-                        handleDeleteItem={handleDeleteItem}
-                        handleItemChange={handleItemChange}
-                      />
-                    </div>
-                  </div>
-                </Tab>
-
-                {/* Grading Options Section */}
-              </Tabs>
-            </Card>
-          </div>
-
-          {/* Submissions Section */}
-          <Card className="bg-zinc-800/40 p-6">
-            <h2 className="mb-6 text-xl font-semibold">Submissions</h2>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <h3 className="mb-2 text-medium font-medium">
-                    Submission Options
-                  </h3>
-                  <div className="space-y-2">
-                    <Checkbox>Show test results immediately</Checkbox>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="mb-2 text-medium font-medium">
-                    Submission Limits
-                  </h3>
-                  <div className="space-y-4">
-                    <Input
-                      classNames={{
-                        input: "bg-zinc-700",
-                        inputWrapper: "bg-zinc-700",
-                      }}
-                      label="Maximum Attempts"
-                      placeholder="Unlimited"
-                      type="number"
-                      min="0"
-                      variant="bordered"
-                    />
-                    <div className="mt-6 flex flex-wrap gap-4">
-                      <Checkbox
-                        isSelected={formData.allowLateSubmission}
-                        onValueChange={(value) =>
-                          handleFormChange("allowLateSubmission", value)
-                        }
-                      >
-                        Allow late submissions
-                      </Checkbox>
-                      <Tooltip content="Displays testcases results to students immediately after submission">
-                        <Checkbox
-                          value={formData.showResults}
-                          onValueChange={(value) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              showResults: value,
-                            }))
-                          }
-                        >
-                          Show results immediately
-                        </Checkbox>
-                      </Tooltip>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
           </Card>
+        )}
 
-          <div className="flex justify-between">
-            <Button size="lg" variant="flat" onPress={handlePreview}>
-              See Preview
-            </Button>
+        {/* Regular form (show when not in AI mode or when editing) */}
+        {(isEdit || !showAIPrompt) && (
+          <form onSubmit={handleSubmit} className="space-y-8">
+            {/* Assignment  Card */}
+            <Card className="bg-zinc-800/40 p-6 w-full">
+              <h2 className="mb-6 text-xl font-semibold">Assignment Details</h2>
+              <div className="grid  gap-6 lg:grid-cols-2">
+                <Input
+                  isRequired
+                  label="Assignment Title"
+                  placeholder="Enter assignment title"
+                  value={formData.title}
+                  variant="bordered"
+                  onValueChange={(value) => handleFormChange("title", value)}
+                />
+                <div className="flex  gap-4 ">
+                  <div className="flex-1">
+                    <DatePicker
+                      isRequired
+                      hideTimeZone
+                      showMonthAndYearPickers
+                      label="Open Assignment at"
+                      variant="bordered"
+                      granularity="minute"
+                      value={startDate}
+                      onChange={handleStartDateChange}
+                      isInvalid={!!dateErrors.startDate}
+                      errorMessage={dateErrors.startDate}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <DatePicker
+                      hideTimeZone
+                      isRequired
+                      showMonthAndYearPickers
+                      label="Close Assignment at"
+                      variant="bordered"
+                      granularity="minute"
+                      value={dueDate}
+                      onChange={handleDueDateChange}
+                      isInvalid={!!dateErrors.dueDate}
+                      errorMessage={dateErrors.dueDate}
+                    />
+                  </div>
+                </div>
 
-            <div className="flex gap-2">
-              <Button size="lg" variant="flat">
-                Export
-              </Button>
-              <Button
-                color="primary"
-                size="lg"
-                type="submit"
-                isLoading={isSubmitting}
-                spinner={<Spinner />}
-              >
-                {isSubmitting ? "Creating..." : "Create Assignment"}
-              </Button>
+                <RichTextEditor
+                  className="md:col-span-2 bg-zinc-200 max-h-[400px]"
+                  isRequired
+                  editorRef={descriptionRef}
+                />
+
+                <Select
+                  isRequired
+                  className="md:col-span-2 "
+                  variant="bordered"
+                  label="Class"
+                  placeholder="Select a class"
+                  selectedKeys={
+                    formData.classId ? [String(formData.classId)] : []
+                  }
+                  onChange={(e) =>
+                    handleClassChange(e.target.value, e.target.name)
+                  }
+                >
+                  {classes &&
+                    classes.length > 0 &&
+                    classes.map((classInfo) => (
+                      <SelectItem
+                        key={classInfo.id}
+                        value={classInfo.id}
+                        name={classInfo.name}
+                      >
+                        {classInfo.name}
+                      </SelectItem>
+                    ))}
+                </Select>
+              </div>
+
+              {/* Students */}
+
+              {students && formData.classId && (
+                <div className="mt-6">
+                  {isLoading ? (
+                    <div className="flex items-center justify-center">
+                      <Spinner />
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="mb-2 flex items-center justify-between">
+                        <h3 className="text-medium font-medium">Students</h3>
+                        <Button
+                          className="mb-3"
+                          color="primary"
+                          variant="flat"
+                          onPress={handleSelectAllStudents}
+                        >
+                          {students.length ===
+                          formData.selectedStudentIds.length
+                            ? "Unselect All"
+                            : "Select All"}
+                        </Button>
+                      </div>
+                      <ScrollShadow className="max-h-[200px]">
+                        <div className="space-y-2">
+                          {students && students.length > 0 ? (
+                            students.map((student) => (
+                              <div
+                                key={student.student_id}
+                                className="flex items-center justify-between rounded-medium border border-zinc-700 p-3"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <Checkbox
+                                    isSelected={formData.selectedStudentIds.includes(
+                                      student.student_id
+                                    )}
+                                    onValueChange={() =>
+                                      handleToggleStudent(student.student_id)
+                                    }
+                                  />
+                                  <div>
+                                    <div className="font-medium">
+                                      {student.full_name}
+                                    </div>
+                                    <div className="text-small text-zinc-400">
+                                      {student.student_email || "No email"}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-small text-red-400 w-full flex justify-center">
+                              This class has no students. Please add students in
+                              the classroom page.
+                            </div>
+                          )}
+                        </div>
+                      </ScrollShadow>
+
+                      {classes.length === 0 && (
+                        <div className="mt-2 text-small text-zinc-400">
+                          {/* Number of selected students of total (total is second) */}
+                          {formData.selectedStudentIds.length} of{" "}
+                          {students.length || "0"} selected
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </Card>
+
+            {/* Code Template and Settings Split Screen */}
+            <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+              {/* Code Template Section - 60% width */}
+              <Card className="col-span-1 xl:col-span-3 bg-zinc-800/40 ">
+                <div className=" flex items-center justify-between px-6 pt-6">
+                  <h2 className="text-xl font-semibold">Code Template</h2>
+                  <div className="flex items-center gap-2 ">
+                    <Select
+                      placeholder="Select a language"
+                      className="min-w-[120px]"
+                      defaultSelectedKeys={["java"]}
+                      value={selectedLanguage}
+                      isRequired={true}
+                      onChange={(e) => setSelectedLanguage(e.target.value)}
+                    >
+                      {languages.map((lang) => (
+                        <SelectItem key={lang.key} value={lang.key}>
+                          {lang.name}
+                        </SelectItem>
+                      ))}
+                    </Select>
+
+                    <Button
+                      variant="flat"
+                      color="primary"
+                      className="min-w-[100px] "
+                      onPress={triggerFileUpload}
+                    >
+                      <Icon icon="lucide:upload" className="" />
+                      Upload
+                    </Button>
+                    <Button
+                      variant="flat"
+                      color="secondary"
+                      className="min-w-[130px] "
+                      onPress={generateWithAI}
+                      isDisabled={isGenerating}
+                    >
+                      <Icon icon="lucide:wand-sparkles" />
+                      {isGenerating ? "Generating..." : "AI Generate"}
+                    </Button>
+                    <Button
+                      variant="flat"
+                      color="success"
+                      className="min-w-[100px]"
+                      onPress={runCode}
+                      isDisabled={isRunning}
+                    >
+                      <Icon icon="lucide:play" />
+                      {isRunning ? "Running..." : "Run"}
+                    </Button>
+
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".js,.py,.java,.ts,.cs,.cpp,.txt"
+                      className="hidden"
+                      onChange={handleFileUpload}
+                    />
+                  </div>
+                </div>
+
+                <div className="w-full flex justify-between pr-6 items-end">
+                  <Tabs
+                    color="secondary"
+                    size="lg"
+                    variant="underlined"
+                    defaultSelectedKey={1}
+                    selectedKey={selectedFile}
+                    onSelectionChange={setSelectedFile}
+                    aria-label="Tabs sizes"
+                  >
+                    <Tab key={1} title="Student Template"></Tab>
+                  </Tabs>
+                  <div className="mb-4 text-sm text-zinc-400 flex items-center">
+                    <Icon
+                      icon="lucide:lock"
+                      className="mr-2 text-base text-red-700"
+                    />
+                    <span>
+                      {" "}
+                      {/* It's also good practice to wrap your text in a span */}
+                      Click on the line numbers to lock/unlock lines for
+                      students.
+                    </span>
+                  </div>
+                </div>
+                <CodeEditor
+                  classname="w-full"
+                  language={selectedLanguage || "java"}
+                  editorRef={editorRef}
+                  role="teacher"
+                  starterCode={"// this file will be visible to students."}
+                  handleHiddenLinesChange={handleHiddenLinesChange}
+                  handleLockedLinesChange={handleLockedLinesChange}
+                />
+                {output && (
+                  <div className="mt-4 p-4 bg-black text-white rounded-lg">
+                    <h3 className="text-sm text-zinc-400 mb-2">Output:</h3>
+                    <pre className="whitespace-pre-wrap">{output}</pre>
+                  </div>
+                )}
+              </Card>
+
+              {/* Assignment Settings & Test Cases - 40% width */}
+              <Card className="col-span-1 xl:col-span-2 bg-zinc-800/40 p-6">
+                <h2 className="mb-6 text-xl font-semibold">
+                  Assignment Settings
+                </h2>
+                <Tabs color="default" variant="bordered">
+                  {/* Test Cases Section */}
+                  <Tab
+                    key="photos"
+                    title={
+                      <div className="flex items-center space-x-1">
+                        <FlaskConical size={15} />
+                        <span>Test Cases</span>
+                      </div>
+                    }
+                  >
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <h3 className="text-lg font-medium">Test Cases</h3>
+                        <Button
+                          color="secondary"
+                          variant="flat"
+                          size="sm"
+                          onPress={generateTestCases}
+                          isLoading={isGeneratingTestCases}
+                          isDisabled={isGeneratingTestCases}
+                        >
+                          <Icon icon="lucide:wand-sparkles" className="mr-1" />
+                          {isGeneratingTestCases
+                            ? "Generating..."
+                            : "Generate Tests"}
+                        </Button>
+                      </div>
+                      <Testcase
+                        testcases={testcases}
+                        setTestcases={setTestcases}
+                      />
+                    </div>
+                  </Tab>
+
+                  <Tab
+                    key="items"
+                    title={
+                      <div className="flex items-center space-x-1">
+                        <MonitorCog size={15} />
+                        <span>Settings</span>
+                      </div>
+                    }
+                  >
+                    <div className=" items-center">
+                      <h3 className="text-lg font-medium">Grading Options</h3>
+                      <p className="text-zinc-400">
+                        Configure how this assignment will be graded.
+                      </p>
+                      <div className="grid grid-cols-2 gap-4 py-4">
+                        <Checkbox
+                          isSelected={formData.autoGrade}
+                          onValueChange={(value) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              autoGrade: value,
+                            }))
+                          }
+                        >
+                          Auto-grade test cases
+                        </Checkbox>
+                        <Checkbox
+                          isSelected={formData.checkStyle}
+                          onValueChange={(value) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              checkStyle: value,
+                            }))
+                          }
+                        >
+                          Check for code style
+                        </Checkbox>
+
+                        <Checkbox
+                          isSelected={formData.allowCopyPaste}
+                          onValueChange={(value) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              allowCopyPaste: value,
+                            }))
+                          }
+                        >
+                          Allow copy & paste
+                        </Checkbox>
+                      </div>
+                      <div className="w-full flex items-center justify-center">
+                        <Divider className="w-4/5 justify-center" />
+                      </div>
+                      <div className="space-y-4 pt-2 overflow-y-auto max-h-[450px] custom-scrollbar">
+                        <MiniRubric
+                          sections={sections}
+                          handleToggleSectionAutograde={
+                            handleToggleSectionAutograde
+                          }
+                          handleAddItem={handleAddItem}
+                          handleDeleteItem={handleDeleteItem}
+                          handleItemChange={handleItemChange}
+                        />
+                      </div>
+                    </div>
+                  </Tab>
+
+                  {/* Grading Options Section */}
+                </Tabs>
+              </Card>
             </div>
-          </div>
-          <style jsx>{`
-            .custom-scrollbar::-webkit-scrollbar {
-              width: 6px;
-            }
-            .custom-scrollbar::-webkit-scrollbar-track {
-              background: rgba(255, 255, 255, 0.05);
-              border-radius: 3px;
-            }
-            .custom-scrollbar::-webkit-scrollbar-thumb {
-              background: rgba(255, 255, 255, 0.2);
-              border-radius: 3px;
-            }
-            .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-              background: rgba(255, 255, 255, 0.3);
-            }
-          `}</style>
-        </form>
+
+            {/* Submissions Section */}
+            <Card className="bg-zinc-800/40 p-6">
+              <h2 className="mb-6 text-xl font-semibold">Submissions</h2>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <h3 className="mb-2 text-medium font-medium">
+                      Submission Options
+                    </h3>
+                    <div className="space-y-2">
+                      <Checkbox>Show test results immediately</Checkbox>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="mb-2 text-medium font-medium">
+                      Submission Limits
+                    </h3>
+                    <div className="space-y-4">
+                      <Input
+                        classNames={{
+                          input: "bg-zinc-700",
+                          inputWrapper: "bg-zinc-700",
+                        }}
+                        label="Maximum Attempts"
+                        placeholder="Unlimited"
+                        type="number"
+                        min="0"
+                        variant="bordered"
+                      />
+                      <div className="mt-6 flex flex-wrap gap-4">
+                        <Checkbox
+                          isSelected={formData.allowLateSubmission}
+                          onValueChange={(value) =>
+                            handleFormChange("allowLateSubmission", value)
+                          }
+                        >
+                          Allow late submissions
+                        </Checkbox>
+                        <Tooltip content="Displays testcases results to students immediately after submission">
+                          <Checkbox
+                            isSelected={formData.showResults}
+                            onValueChange={(value) =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                showResults: value,
+                              }))
+                            }
+                          >
+                            Show results immediately
+                          </Checkbox>
+                        </Tooltip>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <div className="flex justify-between">
+              <Button size="lg" variant="flat" onPress={handlePreview}>
+                See Preview
+              </Button>
+
+              <div className="flex gap-2">
+                <Button size="lg" variant="flat">
+                  Export
+                </Button>
+                <Button
+                  color="primary"
+                  size="lg"
+                  type="submit"
+                  isLoading={isSubmitting}
+                  spinner={<Spinner />}
+                >
+                  {isSubmitting ? "Creating..." : "Create Assignment"}
+                </Button>
+              </div>
+            </div>
+            <style jsx>{`
+              .custom-scrollbar::-webkit-scrollbar {
+                width: 6px;
+              }
+              .custom-scrollbar::-webkit-scrollbar-track {
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: 3px;
+              }
+              .custom-scrollbar::-webkit-scrollbar-thumb {
+                background: rgba(255, 255, 255, 0.2);
+                border-radius: 3px;
+              }
+              .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                background: rgba(255, 255, 255, 0.3);
+              }
+            `}</style>
+          </form>
+        )}
+
         {showPreviewModal && assignmentPreviewData && (
           <AssignmentPreview
             assignment={assignmentPreviewData}

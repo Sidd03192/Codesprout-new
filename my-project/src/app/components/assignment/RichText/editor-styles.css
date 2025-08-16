@@ -64,13 +64,12 @@
   color: #d19a66; /* Orange attributes */
 }
 
-
 /* Heading styles */
 .ProseMirror h1 {
   font-size: 1.5rem;
   font-weight: 700;
   margin: 1rem 0;
-  
+
   color: hsl(var(--heroui-foreground));
 }
 
@@ -87,13 +86,12 @@
   font-weight: 500;
   margin: 0.75rem 0;
   color: hsl(var(--heroui-foreground));
-    margin-bottom: 2em;
-
+  margin-bottom: 2em;
 }
 
 .ProseMirror p {
   margin-bottom: 1em; /* Adds space after each paragraph */
-  color:#9cdcfe;
+  color: #ffffff;
 }
 .ProseMirror h2 {
   margin-top: 1.5em; /* Adds space above a heading */

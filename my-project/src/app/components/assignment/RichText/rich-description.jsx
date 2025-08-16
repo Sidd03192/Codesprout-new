@@ -19,6 +19,7 @@ import { Placeholder } from "@tiptap/extensions";
 import Heading from "@tiptap/extension-heading";
 import js from "highlight.js/lib/languages/javascript";
 import { Color, TextStyle } from "@tiptap/extension-text-style";
+import Code from "@tiptap/extension-code";
 
 import { all, createLowlight } from "lowlight";
 import "./editor-styles.css"; // Import highlight.js theme (see below)
@@ -44,6 +45,11 @@ export const RichTextEditor = ({ editorRef }) => {
           class: "text-default-400 bg-red-500 italic",
         },
       }),
+      Code.configure({
+        HTMLAttributes: {
+          class: "bg-zinc-700 rounded-md p-1 font-mono text-red-400 ",
+        },
+      }),
 
       // Inline formatting
       Underline,
@@ -51,7 +57,7 @@ export const RichTextEditor = ({ editorRef }) => {
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
-          class: "text-primary underline cursor-pointer",
+          class: "underline cursor-pointer",
         },
       }),
 
