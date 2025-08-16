@@ -33,8 +33,9 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [assignments, setAssignments] = useState([]);
   const router = useRouter();
+  const supabase = createClient();
+
   useEffect(() => {
-    const supabase = createClient();
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         if (!session) {
@@ -52,27 +53,30 @@ export default function Dashboard() {
   }, []);
   useEffect(() => {
     if (!session?.user?.id) return;
-  
+
     (async () => {
-      console.log("session.user.id" , session.user.id);
+      console.log("session.user.id", session.user.id);
       const type = await getUserType(session.user.id);
-      setUserType(type); 
+      setUserType(type);
     })();
-  }, [session?.user?.id]);
+  }, [session?.user]);
   const getUserType = async (userId) => {
     const supabase = createClient();
-    console.log("userId" , userId);
+    console.log("userId", userId);
     try {
       const { data, error } = await supabase
         .from("users")
         .select("role")
         .eq("id", userId)
-      console.log("data" , data);
+        .single(); // <-- Add .single() here
+
+      console.log("data", data);
       if (error) {
         console.error("Error fetching user role:", error.message);
-        return "student"; 
+        return "student"; // Default role on error
       }
 
+      // Now 'data' is an object like { role: '...' }, so data.role will work
       return data?.role || "student";
     } catch (err) {
       console.error("Unexpected error fetching user role:", err.message);
@@ -196,10 +200,10 @@ export default function Dashboard() {
       setIsSidebarCollapsed(!isSidebarCollapsed);
     }
   };
-  console.log("user Type" , userType);
-  /**if(userType == "student"){
+  console.log("user Type", userType);
+  if (userType == "student") {
     return <AccessDenied userRole={userType} />;
-  }**/
+  }
   // Render the active page component
   const renderActivePage = () => {
       switch (activePage) {
@@ -219,7 +223,8 @@ export default function Dashboard() {
           return <Classroom session={session} classes={classes} />;
         default:
           return <Overview />;
-        } 
+      }
+    }
   };
 
   // Handle page change
@@ -227,7 +232,6 @@ export default function Dashboard() {
     console.log("Changing page to:", page);
     setActivePage(page);
   };
-  
 
   return isLoading ? (
     <div className="flex h-screen w-full bg-gradient-to-br from-[#1e2b22] via-[#1e1f2b] to-[#2b1e2e] text-center items-center justify-center">
@@ -346,8 +350,4 @@ export default function Dashboard() {
       </div>
     </div>
   );
-
-  
 }
-
-

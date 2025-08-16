@@ -1,6 +1,5 @@
 .dark {
   /* Dark Mode Variables */
-  --background: 222.2 84% 4.9%;
   --foreground: 210 40% 98%;
   --card: 222.2 84% 4.9%;
   --card-foreground: 210 40% 98%;
@@ -57,11 +56,10 @@ body {
 
 /* Glass surfaces */
 .glass {
-  background: hsl(var(--foreground) / 0.06);
+  background: transparent;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid hsl(var(--foreground) / 0.12);
-  box-shadow: var(--shadow-elegant);
 }
 
 .card-glass {
@@ -70,21 +68,67 @@ body {
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid hsl(var(--foreground) / 0.12);
   box-shadow: var(--shadow-elegant);
-  border-radius: var(--radius);
   padding: 1.5rem; /* 24px */
 }
 
+/* You can add this to your global styles (e.g., globals.css) */
+/* Add this class to the div you want the glow behind */
+.text-glow-container {
+  position: relative;
+  isolation: isolate; /* Prevents z-index issues with the glow */
+}
+
+/* This creates the glow effect as a separate layer behind the container */
+.text-glow-container::before {
+  content: '';
+  position: absolute;
+  top: 70%;
+  left: 5%;
+  transform: translate(-70%, -30%);
+  z-index: -1; /* Places the glow behind the container's content */
+
+  /* Your glow styles */
+  width: 150%; 
+  height: 150%;
+  background: radial-gradient(
+    circle,
+    hsl(var(--brand) / 0.6), /* Your brand color */
+    transparent 30%
+  );
+  filter: blur(120px);
+}
+
+
+.hero-glow::before {
+  content: '';
+  position: absolute;
+  /* Position the glow's center slightly lower than the container's center */
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  
+  /* Make the glow effect larger than the container itself */
+  width: 150%; 
+  height: 150%;
+  
+  /* The radial gradient using your brand's violet color */
+  background: radial-gradient(
+    circle,
+    hsl(var(--brand-2) / 0.6), /* Semi-transparent violet */
+    transparent 50%          /* Fade to transparent */
+  );
+  
+  /* Soften the gradient into a glow and place it behind the content */
+  filter: blur(120px);
+  z-index: -1; /* This is the key to putting it behind the image */
+}
 /* Themed buttons */
-.btn-hero {
-  background-image: linear-gradient(var(--gradient-brand));
-  color: hsl(var(--brand-contrast));
-  box-shadow: var(--shadow-glow);
-}
 
-.btn-hero:hover {
-  opacity: 0.95;
-}
 
+.hero-button {
+  border: 1px solid hsl(var(--foreground) / 0.12);
+  border-color: linear-gradient(135deg, hsl(var(--brand)), hsl(var(--brand-2)));
+}
 .btn-glass {
   background: hsl(var(--foreground) / 0.06);
   backdrop-filter: blur(16px);
@@ -92,7 +136,10 @@ body {
   border: 1px solid hsl(var(--foreground) / 0.12);
   box-shadow: var(--shadow-elegant);
 }
-
+.navbar--no-border {
+  border: none !important;
+  box-shadow: none !important;
+}
 /* --- UTILITY STYLES ---
   Helper classes for animations and effects.
 */
@@ -291,3 +338,6 @@ body {
     opacity: 1;
   }
 }
+
+
+

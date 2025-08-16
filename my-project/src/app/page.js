@@ -1,11 +1,8 @@
 "use client";
 
-import Image from "next/image";
-import styles from "./page.module.css";
-import { Button } from "@heroui/react";
+
 import { createClient } from "../../utils/supabase/client";
 import { useEffect, useState } from "react";
-import Navigation from "./components/nav";
 import { Landing } from "./landing-new/landing";
 export default function Home() {
   const supabase = createClient();

@@ -1,5 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Check, Zap, Crown, Rocket, Star, ArrowRight, Sparkles } from "lucide-react";
+import {
+  Check,
+  Zap,
+  Crown,
+  Rocket,
+  Star,
+  ArrowRight,
+  Sparkles,
+} from "lucide-react";
 import { Button } from "@heroui/react";
 
 // Intersection Observer hook for animations
@@ -33,12 +41,12 @@ const AnimatedCounter = ({ end, duration = 2000, inView }) => {
 
   useEffect(() => {
     if (!inView) return;
-    
+
     let startTime;
     const animate = (timestamp) => {
       if (!startTime) startTime = timestamp;
       const progress = (timestamp - startTime) / duration;
-      
+
       if (progress < 1) {
         setCount(Math.floor(end * progress));
         requestAnimationFrame(animate);
@@ -46,7 +54,7 @@ const AnimatedCounter = ({ end, duration = 2000, inView }) => {
         setCount(end);
       }
     };
-    
+
     requestAnimationFrame(animate);
   }, [end, duration, inView]);
 
@@ -55,11 +63,11 @@ const AnimatedCounter = ({ end, duration = 2000, inView }) => {
 
 // Floating particles component
 const FloatingParticle = ({ delay = 0, duration = 4 }) => (
-  <div 
-    className="absolute w-2 h-2 bg-primary/20 rounded-full animate-ping"
+  <div
+    className="absolute w-2 h-2 bg-primary/20 rounded-xl animate-ping"
     style={{
       animationDelay: `${delay}s`,
-      animationDuration: `${duration}s`
+      animationDuration: `${duration}s`,
     }}
   />
 );
@@ -73,9 +81,9 @@ const PricingCard = ({ plan, isPopular = false, delay = 0, inView }) => {
       ref={cardRef}
       className={`
         relative group pricing-card transition-all duration-700 transform
-        ${inView ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}
-        ${isPopular ? 'scale-105 z-10' : 'hover:scale-105'}
-        ${isHovered ? 'shadow-2xl' : ''}
+        ${inView ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}
+        ${isPopular ? "scale-105 z-10" : "hover:scale-105"}
+        ${isHovered ? "shadow-2xl" : ""}
       `}
       style={{ animationDelay: `${delay}s` }}
       onMouseEnter={() => setIsHovered(true)}
@@ -84,7 +92,7 @@ const PricingCard = ({ plan, isPopular = false, delay = 0, inView }) => {
       {/* Popular badge */}
       {isPopular && (
         <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-20">
-          <div className="bg-[linear-gradient(var(--gradient-brand))] text-[hsl(var(--brand-contrast))] px-4 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
+          <div className="bg-[linear-gradient(var(--gradient-brand))] text-[hsl(var(--brand-contrast))] px-4 py-1 rounded-xl text-sm font-semibold flex items-center gap-1">
             <Crown size={14} />
             Most Popular
           </div>
@@ -93,13 +101,15 @@ const PricingCard = ({ plan, isPopular = false, delay = 0, inView }) => {
 
       {/* Glow effect */}
       {isPopular && (
-        <div className="absolute inset-0 bg-[linear-gradient(var(--gradient-brand))] rounded-2xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity duration-500" />
+        <div className="absolute inset-0 bg-[linear-gradient(var(--gradient-brand))] rounded-[56px] md:rounded-[64px] blur-xl opacity-20 group-hover:opacity-30 transition-opacity duration-500" />
       )}
 
-      <div className={`
-        relative h-full card-glass rounded-2xl p-8 overflow-hidden
-        ${isPopular ? 'border-2 border-primary/30' : ''}
-      `}>
+      <div
+        className={`
+        relative h-full card-glass rounded-xl p-8 overflow-hidden
+        ${isPopular ? "border-2 border-primary/30" : ""}
+      `}
+      >
         {/* Background decorations */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <FloatingParticle delay={0} />
@@ -119,20 +129,33 @@ const PricingCard = ({ plan, isPopular = false, delay = 0, inView }) => {
 
         {/* Plan header */}
         <div className="relative z-10 text-center mb-6">
-          <div className={`inline-flex p-3 rounded-full mb-4 ${
-            isPopular 
-              ? 'bg-[linear-gradient(var(--gradient-brand))] text-[hsl(var(--brand-contrast))]' 
-              : 'bg-primary/10 text-primary'
-          }`}>
-            <plan.icon size={24} className={isPopular ? '' : 'group-hover:scale-110 transition-transform duration-300'} />
+          <div
+            className={`inline-flex p-3 rounded-xl mb-4 ${
+              isPopular
+                ? "bg-[linear-gradient(var(--gradient-brand))] text-[hsl(var(--brand-contrast))]"
+                : "bg-primary/10 text-primary"
+            }`}
+          >
+            <plan.icon
+              size={24}
+              className={
+                isPopular
+                  ? ""
+                  : "group-hover:scale-110 transition-transform duration-300"
+              }
+            />
           </div>
-          
-          <h3 className={`text-xl font-bold mb-2 ${
-            isPopular ? 'text-primary' : 'group-hover:text-primary transition-colors duration-300'
-          }`}>
+
+          <h3
+            className={`text-xl font-bold mb-2 ${
+              isPopular
+                ? "text-primary"
+                : "group-hover:text-primary transition-colors duration-300"
+            }`}
+          >
             {plan.name}
           </h3>
-          
+
           <p className="text-muted-foreground text-sm leading-relaxed">
             {plan.description}
           </p>
@@ -152,7 +175,7 @@ const PricingCard = ({ plan, isPopular = false, delay = 0, inView }) => {
               <span className="text-muted-foreground line-through text-sm">
                 ${plan.originalPrice}
               </span>
-              <span className="bg-red-500/20 text-red-400 px-2 py-1 rounded-full text-xs font-medium">
+              <span className="bg-red-500/20 text-red-400 px-2 py-1 rounded-xl text-xs font-medium">
                 Save {Math.round((1 - plan.price / plan.originalPrice) * 100)}%
               </span>
             </div>
@@ -163,17 +186,17 @@ const PricingCard = ({ plan, isPopular = false, delay = 0, inView }) => {
         <div className="relative z-10 mb-8">
           <Button
             className={`w-full group/btn transition-all duration-300 ${
-              isPopular 
-                ? 'bg-[linear-gradient(var(--gradient-brand))] text-[hsl(var(--brand-contrast))] hover:shadow-lg hover:shadow-primary/25' 
-                : 'glass hover:bg-primary/10'
+              isPopular
+                ? "bg-[linear-gradient(var(--gradient-brand))] text-[hsl(var(--brand-contrast))] hover:shadow-lg hover:shadow-primary/25"
+                : "glass hover:bg-primary/10"
             }`}
             size="lg"
           >
             <span className="flex items-center gap-2">
               {plan.ctaText}
-              <ArrowRight 
-                size={16} 
-                className="group-hover/btn:translate-x-1 transition-transform duration-300" 
+              <ArrowRight
+                size={16}
+                className="group-hover/btn:translate-x-1 transition-transform duration-300"
               />
             </span>
           </Button>
@@ -182,23 +205,27 @@ const PricingCard = ({ plan, isPopular = false, delay = 0, inView }) => {
         {/* Features */}
         <div className="relative z-10 space-y-4">
           {plan.features.map((feature, index) => (
-            <div 
+            <div
               key={index}
               className={`flex items-start gap-3 transition-all duration-500 ${
-                inView ? 'translate-x-0 opacity-100' : 'translate-x-4 opacity-0'
+                inView ? "translate-x-0 opacity-100" : "translate-x-4 opacity-0"
               }`}
               style={{ animationDelay: `${delay + 0.1 * index}s` }}
             >
-              <div className={`p-1 rounded-full ${
-                feature.included 
-                  ? 'bg-green-500/20 text-green-400' 
-                  : 'bg-muted/20 text-muted-foreground'
-              }`}>
+              <div
+                className={`p-1 rounded-xl ${
+                  feature.included
+                    ? "bg-green-500/20 text-green-400"
+                    : "bg-muted/20 text-muted-foreground"
+                }`}
+              >
                 <Check size={12} />
               </div>
-              <span className={`text-sm ${
-                feature.included ? 'text-foreground' : 'text-muted-foreground'
-              }`}>
+              <span
+                className={`text-sm ${
+                  feature.included ? "text-foreground" : "text-muted-foreground"
+                }`}
+              >
                 {feature.text}
               </span>
             </div>
@@ -227,10 +254,10 @@ const Pricing = () => {
       name: "Starter",
       icon: Zap,
       description: "Perfect for individual teachers or small classes",
-      price: isAnnual ? 29 : 35,
-      originalPrice: isAnnual ? 49 : 59,
+      price: isAnnual ? 0 : 0,
+      originalPrice: isAnnual ? 0 : 0,
       period: isAnnual ? "year" : "month",
-      ctaText: "Start Free Trial",
+      ctaText: "Request a Demo",
       features: [
         { text: "Up to 30 students", included: true },
         { text: "AI-powered code review", included: true },
@@ -238,9 +265,9 @@ const Pricing = () => {
         { text: "Email support", included: true },
         { text: "Custom assignments", included: false },
         { text: "Advanced analytics", included: false },
-        { text: "Priority support", included: false }
+        { text: "Priority support", included: false },
       ],
-      additionalInfo: "14-day free trial • No credit card required"
+      additionalInfo: "No credit card required",
     },
     {
       name: "Professional",
@@ -257,9 +284,9 @@ const Pricing = () => {
         { text: "Custom assignments", included: true },
         { text: "Priority support", included: true },
         { text: "Plagiarism detection", included: true },
-        { text: "Grade book integration", included: false }
+        { text: "Grade book integration", included: false },
       ],
-      additionalInfo: "Most popular choice among educators"
+      additionalInfo: "Most popular choice among educators",
     },
     {
       name: "Enterprise",
@@ -275,25 +302,29 @@ const Pricing = () => {
         { text: "Dedicated support", included: true },
         { text: "Advanced security", included: true },
         { text: "Custom branding", included: true },
-        { text: "On-premise deployment", included: true }
+        { text: "On-premise deployment", included: true },
       ],
-      additionalInfo: "Custom pricing available for large deployments"
-    }
+      additionalInfo: "Custom pricing available for large deployments",
+    },
   ];
 
   return (
     <section id="pricing" className="py-16 md:py-24 relative overflow-hidden">
       {/* Background decorations */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-20 left-10 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 right-10 w-64 h-64 bg-secondary/5 rounded-full blur-3xl" />
+        <div className="absolute top-20 left-10 w-64 h-64 bg-primary/5 rounded-xl blur-3xl" />
+        <div className="absolute bottom-20 right-10 w-64 h-64 bg-secondary/5 rounded-xl blur-3xl" />
       </div>
 
       <div className="container mx-auto px-6" ref={containerRef}>
         {/* Section Header */}
-        <div className={`text-center mb-12 transition-all duration-700 transform ${
-          containerInView ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
-        }`}>
+        <div
+          className={`text-center mb-12 transition-all duration-700 transform ${
+            containerInView
+              ? "translate-y-0 opacity-100"
+              : "translate-y-10 opacity-0"
+          }`}
+        >
           <h2 className="text-3xl md:text-5xl font-bold mb-6">
             Choose your{" "}
             <span className="bg-[linear-gradient(var(--gradient-brand))] bg-clip-text text-transparent">
@@ -301,34 +332,37 @@ const Pricing = () => {
             </span>
           </h2>
           <p className="text-muted-foreground text-lg max-w-3xl mx-auto mb-8">
-            Start with a free trial, then choose the plan that best fits your classroom needs. 
-            All plans include our AI-powered teaching assistant and core features.
+            Start with a free trial, then choose the plan that best fits your
+            classroom needs. All plans include our AI-powered teaching assistant
+            and core features.
           </p>
 
           {/* Pricing Toggle */}
-          <div className={`inline-flex items-center p-1 bg-content2 rounded-full transition-all duration-500 ${
-            containerInView ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
-          }`}>
+          <div
+            className={`inline-flex items-center p-1 bg-content2 rounded-xl transition-all duration-500 ${
+              containerInView ? "scale-100 opacity-100" : "scale-95 opacity-0"
+            }`}
+          >
             <button
               onClick={() => setIsAnnual(false)}
-              className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
-                !isAnnual 
-                  ? 'bg-background text-foreground shadow-sm' 
-                  : 'text-muted-foreground hover:text-foreground'
+              className={`px-6 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
+                !isAnnual
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               Monthly
             </button>
             <button
               onClick={() => setIsAnnual(true)}
-              className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-300 relative ${
-                isAnnual 
-                  ? 'bg-background text-foreground shadow-sm' 
-                  : 'text-muted-foreground hover:text-foreground'
+              className={`px-6 py-2 rounded-xl text-sm font-medium transition-all duration-300 relative ${
+                isAnnual
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               Annual
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-xl">
                 Save 40%
               </span>
             </button>
@@ -349,11 +383,16 @@ const Pricing = () => {
         </div>
 
         {/* Bottom CTA */}
-        <div className={`text-center mt-12 transition-all duration-700 transform ${
-          containerInView ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
-        }`}>
+        <div
+          className={`text-center mt-12 transition-all duration-700 transform ${
+            containerInView
+              ? "translate-y-0 opacity-100"
+              : "translate-y-10 opacity-0"
+          }`}
+        >
           <p className="text-muted-foreground mb-4">
-            Need a custom solution? We offer special pricing for large institutions.
+            Need a custom solution? We offer special pricing for large
+            institutions.
           </p>
           <Button variant="outline" size="lg" className="glass">
             Contact Our Sales Team
