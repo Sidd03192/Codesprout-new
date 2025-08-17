@@ -226,7 +226,8 @@ export const CodingInterface = ({
       id,
       submit,
       new Date().toISOString(), // Use current date and time for submission
-      assignmentData.testing_url
+      assignmentData.testing_url,
+      assignmentData.rubric
     );
     if (data === "success") {
       if (submit) {

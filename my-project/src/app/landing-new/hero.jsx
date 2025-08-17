@@ -69,8 +69,8 @@ export const Hero = () => {
         </div>
 
         {/* Demo screen below buttons */}
-        <div className="mt-10 md:mt-14">
-          <figure className="relative rounded-2xl glass  p-2 hero-glow isolation-isolate">
+        <div className="mt-10 md:mt-14 w-full align-center flex justify-center">
+          <figure className="relative rounded-2xl glass max-w-[1360] p-2 hero-glow isolation-isolate">
             <img
               src="/example.png"
               alt="Code Sprout product demo screen"

@@ -3,6 +3,10 @@
 "use server";
 import { createClient } from "../../../utils/supabase/server";
 import { executeCode } from "../components/editor/api";
+import OpenAI from "openai";
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
 // This action fetches assignments for a given student.
 // It returns both the assignments that are already active
 // and the single next assignment that is scheduled to start.
@@ -56,7 +60,7 @@ export const getAssignmentDetails = async (assignment_id) => {
   const { data, error } = await supabase
     .from("assignments")
     .select(
-      "id, title, description, language, code_template, hints, open_at, due_at, status, locked_lines,  allow_late_submission, allow_copy_paste, allow_auto_complete, auto_grade, show_results, testing_url "
+      "id, title, description, language, code_template, hints, open_at, due_at, status, locked_lines,  allow_late_submission, allow_copy_paste, allow_auto_complete, auto_grade, show_results, testing_url,rubric "
     )
     .eq("id", assignment_id)
     .single(); // Use .single() to get a single object instead of an array
@@ -156,7 +160,8 @@ export const saveAssignment = async (
   assignment_id,
   isSubmitting,
   submitted_at,
-  path
+  path,
+  rubric
 ) => {
   const supabase = await createClient();
 
@@ -168,7 +173,9 @@ export const saveAssignment = async (
     "code:",
     student_code,
     "path:",
-    path
+    path,
+    "rubric:",
+    rubric
   );
   const numericAssignmentId = parseInt(assignment_id, 10);
 
@@ -180,6 +187,9 @@ export const saveAssignment = async (
   let structuredResult = null;
   let status = isSubmitting ? "submitted" : "draft";
   let gradingResult = null; // should have score and feedback
+  let stylingResults = [];
+  let requirementsResults = [];
+
   if (isSubmitting) {
     console.log("Submitting... preparing to call grading API.");
     try {
@@ -204,8 +214,79 @@ export const saveAssignment = async (
         );
       }
       gradingResult = await response.json();
-      structuredResult = structureTestingData(gradingResult);
       console.log("Received grading result from API:", gradingResult);
+
+      // Extract criteria from rubric and run AI evaluation in parallel
+      if (rubric) {
+        console.log("attempting to parse rubric");
+        const stylingSection = rubric.find(
+          (section) => section.title === "Styling Criteria"
+        );
+        const requirementsSection = rubric.find(
+          (section) => section.title === "Requirements"
+        );
+
+        const aiEvaluationPromises = [];
+
+        if (
+          stylingSection &&
+          stylingSection.items &&
+          stylingSection.items.length > 0
+        ) {
+          const stylingCriteria = stylingSection.items.map((item) => ({
+            name: item.name,
+            maxPoints: item.maxPoints || 10,
+          }));
+          aiEvaluationPromises.push(
+            evaluateCodeWithAI(student_code, stylingCriteria, "Styling")
+          );
+        } else {
+          aiEvaluationPromises.push(Promise.resolve([]));
+        }
+
+        if (
+          requirementsSection &&
+          requirementsSection.items &&
+          requirementsSection.items.length > 0
+        ) {
+          const requirementsCriteria = requirementsSection.items.map(
+            (item) => ({
+              name: item.name,
+              maxPoints: item.maxPoints || 10,
+            })
+          );
+          aiEvaluationPromises.push(
+            evaluateCodeWithAI(
+              student_code,
+              requirementsCriteria,
+              "Requirements"
+            )
+          );
+        } else {
+          aiEvaluationPromises.push(Promise.resolve([]));
+        }
+
+        try {
+          const [aiStylingResults, aiRequirementsResults] = await Promise.all(
+            aiEvaluationPromises
+          );
+          stylingResults = aiStylingResults;
+          requirementsResults = aiRequirementsResults;
+          console.log("AI styling results:", stylingResults);
+          console.log("AI requirements results:", requirementsResults);
+        } catch (aiError) {
+          console.error("AI evaluation failed:", aiError);
+          // Continue with empty results if AI fails
+        }
+      } else {
+        console.log("no rubric provided");
+      }
+
+      structuredResult = structureTestingData(
+        gradingResult,
+        stylingResults,
+        requirementsResults
+      );
       console.log(structuredResult);
     } catch (apiError) {
       console.error("Fatal: Failed to get grading result from API.", apiError);
@@ -231,7 +312,93 @@ export const saveAssignment = async (
   }
 };
 
-const structureTestingData = (data) => {
+const evaluateCodeWithAI = async (studentCode, criteria, criteriaType) => {
+  try {
+    const systemPrompt = `You are an expert code reviewer. Evaluate the submitted code against the provided ${criteriaType} criteria. 
+
+For each criterion, determine if the code meets the requirement and assign points accordingly.
+
+Respond with a JSON array where each object has:
+- name: the criterion name (exactly as provided)
+- status: "passed", "failed", or "partial"
+- pointsAchieved: number of points earned (0 or maxPoints)
+- maxPoints: maximum points for this criterion
+- feedback: brief explanation of the evaluation
+
+Be fair but thorough in your evaluation.`;
+
+    const userPrompt = `Code to evaluate:
+\`\`\`
+${studentCode}
+\`\`\`
+
+${criteriaType} criteria to check:
+${criteria.map((c) => `- ${c.name} (max ${c.maxPoints} points)`).join("\n")}
+
+Evaluate each criterion and provide the results as a JSON array.`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      temperature: 0.3,
+      max_tokens: 1000,
+    });
+
+    const aiResponse = response.choices[0].message.content;
+
+    console.log("AI response:", aiResponse);
+
+    // Strip markdown code blocks if present
+    let jsonString = aiResponse;
+    if (jsonString.includes("```json")) {
+      jsonString = jsonString.replace(/```json\s*/g, "").replace(/```/g, "");
+    } else if (jsonString.includes("```")) {
+      jsonString = jsonString.replace(/```\s*/g, "").replace(/```/g, "");
+    }
+    jsonString = jsonString.trim();
+
+    // Try to parse the JSON response
+    try {
+      const parsedResults = JSON.parse(jsonString);
+      return parsedResults.map((result) => ({
+        name: result.name,
+        status: result.status || "ungraded",
+        maxPoints: result.maxPoints || 0,
+        pointsAchieved: result.pointsAchieved || 0,
+        feedback: result.feedback || "",
+      }));
+    } catch (parseError) {
+      console.error("Failed to parse AI response:", parseError);
+      // Return default ungraded results if parsing fails
+      return criteria.map((c) => ({
+        name: c.name,
+        status: "ungraded",
+        maxPoints: c.maxPoints,
+        pointsAchieved: -1,
+        feedback: "AI evaluation failed",
+      }));
+    }
+  } catch (error) {
+    console.error("AI evaluation error:", error);
+    // Return default ungraded results if AI call fails
+    return criteria.map((c) => ({
+      name: c.name,
+      status: "ungraded",
+      maxPoints: c.maxPoints,
+      pointsAchieved: -1,
+      feedback: "AI evaluation failed",
+    }));
+  }
+};
+
+const structureTestingData = (
+  data,
+  stylingResults = [],
+  requirementsResults = []
+) => {
   if (!data || !data.testResults) {
     return "null";
   }
@@ -248,9 +415,9 @@ const structureTestingData = (data) => {
     error: data.error || null,
     // --- Placeholders for manual grading and teacher input ---
     gradeOverride: null,
-    // You would fetch these from the assignment's rubric definition
-    stylingResults: [],
-    requirementsResults: [],
+    // AI-generated results
+    stylingResults: stylingResults,
+    requirementsResults: requirementsResults,
     teacherFeedback: null,
     rubric: null,
   };

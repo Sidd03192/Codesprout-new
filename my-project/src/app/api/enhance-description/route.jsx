@@ -62,7 +62,7 @@ export async function POST(req) {
       : `Original description: ${prompt}\n\nPlease enhance this according to the system instructions.`;
 
     const stream = await openai.chat.completions.create({
-      model: "gpt-5-nano",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",

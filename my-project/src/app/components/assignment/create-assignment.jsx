@@ -110,7 +110,9 @@ export default function CreateAssignmentPage({
   const [isLoading, setIsLoading] = React.useState(false);
   const [students, setStudents] = useState([]);
   const [startDate, setStartDate] = useState(
-    isEdit ? dateToDateValue(assignmentData.open_at) : null
+    isEdit
+      ? dateToDateValue(assignmentData.open_at)
+      : dateToDateValue(new Date(Date.now() + 60 * 60 * 1000)) // 1 hour from now
   );
   const [dueDate, setDueDate] = useState(
     isEdit ? dateToDateValue(assignmentData.due_at) : null
@@ -165,8 +167,24 @@ export default function CreateAssignmentPage({
   useEffect(() => {
     if (isEdit) {
       editorRef.current?.setValue(assignmentData.code_template);
-      console.log("description:", assignmentData.description);
       descriptionRef.current?.commands?.setContent(assignmentData.description);
+      // Load rubric data if it exists
+      if (assignmentData.rubric) {
+        try {
+          const rubricData =
+            typeof assignmentData.rubric === "string"
+              ? JSON.parse(assignmentData.rubric)
+              : assignmentData.rubric;
+          setSections(rubricData);
+        } catch (error) {
+          console.error("Error parsing rubric data:", error);
+        }
+      }
+
+      // Load test cases from Supabase storage if testing_url exists
+      if (assignmentData.testing_url) {
+        loadTestCasesFromStorage(assignmentData.testing_url);
+      }
     }
     editorRef.current?.setValue(formData.codeTemplate);
     descriptionRef.current?.commands?.setContent(formData.description);
@@ -863,6 +881,38 @@ export default function CreateAssignmentPage({
     }
   };
 
+  const loadTestCasesFromStorage = async (testingUrl) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from("testing")
+        .download(testingUrl);
+
+      if (error) {
+        console.error("Error downloading test cases:", error);
+        return;
+      }
+      // Create a testcase object from the downloaded file
+      const fileName = testingUrl.split("/").pop();
+      const testcaseObject = {
+        id: Date.now(),
+        name: fileName,
+        size: data.size,
+        type: data.type,
+        uploadTime: new Date().toLocaleString(),
+        isZip: fileName.endsWith(".zip"),
+        file: data,
+        contents: [],
+        isExpanded: false,
+      };
+
+      setTestcases([testcaseObject]);
+      console.log("loaded" + assignmentData.testing_url);
+      console.log("Test cases loaded from storage:", testcaseObject);
+    } catch (error) {
+      console.error("Error loading test cases from storage:", error);
+    }
+  };
+
   const uploadTestcases = async () => {
     try {
       const fileWrapper = testcases[0];
@@ -1018,7 +1068,6 @@ export default function CreateAssignmentPage({
       })
     );
   };
-  console.log(formData);
   const languages = [
     { key: "python", name: "Python" },
     { key: "java", name: "Java" },
@@ -1201,7 +1250,7 @@ export default function CreateAssignmentPage({
                           onPress={handleSelectAllStudents}
                         >
                           {students.length ===
-                          formData.selectedStudentIds.length
+                          formData.selectedStudentIds?.length
                             ? "Unselect All"
                             : "Select All"}
                         </Button>
@@ -1216,7 +1265,7 @@ export default function CreateAssignmentPage({
                               >
                                 <div className="flex items-center gap-3">
                                   <Checkbox
-                                    isSelected={formData.selectedStudentIds.includes(
+                                    isSelected={formData.selectedStudentIds?.includes(
                                       student.student_id
                                     )}
                                     onValueChange={() =>
@@ -1348,6 +1397,7 @@ export default function CreateAssignmentPage({
                   language={selectedLanguage || "java"}
                   editorRef={editorRef}
                   role="teacher"
+                  initialLockedLines={formData.lockedLines}
                   starterCode={"// this file will be visible to students."}
                   handleHiddenLinesChange={handleHiddenLinesChange}
                   handleLockedLinesChange={handleLockedLinesChange}
