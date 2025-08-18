@@ -191,9 +191,10 @@ export const saveAssignment = async (
   let requirementsResults = [];
 
   if (isSubmitting) {
-    console.log("Submitting... preparing to call grading API.");
+    console.log("Submitting... preparing to call grading API and AI evaluation in parallel.");
     try {
-      const response = await fetch(
+      // Start both grading API call and AI evaluation in parallel
+      const gradingPromise = fetch(
         `${process.env.NEXT_PUBLIC_APP_URL}/api/grade`, // full URL cause we on server
         {
           method: "POST",
@@ -206,27 +207,17 @@ export const saveAssignment = async (
           }),
         }
       );
-      if (!response.ok) {
-        // If the API returns an error status (like 500), handle it
-        const errorBody = await response.json();
-        throw new Error(
-          errorBody.error || `API call failed with status: ${response.status}`
-        );
-      }
-      gradingResult = await response.json();
-      console.log("Received grading result from API:", gradingResult);
 
-      // Extract criteria from rubric and run AI evaluation in parallel
+      // Prepare AI evaluation promises in parallel
+      let aiEvaluationPromises = [];
       if (rubric) {
-        console.log("attempting to parse rubric");
+        console.log("attempting to parse rubric for parallel AI evaluation");
         const stylingSection = rubric.find(
           (section) => section.title === "Styling Criteria"
         );
         const requirementsSection = rubric.find(
           (section) => section.title === "Requirements"
         );
-
-        const aiEvaluationPromises = [];
 
         if (
           stylingSection &&
@@ -265,22 +256,32 @@ export const saveAssignment = async (
         } else {
           aiEvaluationPromises.push(Promise.resolve([]));
         }
-
-        try {
-          const [aiStylingResults, aiRequirementsResults] = await Promise.all(
-            aiEvaluationPromises
-          );
-          stylingResults = aiStylingResults;
-          requirementsResults = aiRequirementsResults;
-          console.log("AI styling results:", stylingResults);
-          console.log("AI requirements results:", requirementsResults);
-        } catch (aiError) {
-          console.error("AI evaluation failed:", aiError);
-          // Continue with empty results if AI fails
-        }
       } else {
-        console.log("no rubric provided");
+        console.log("no rubric provided, skipping AI evaluation");
+        aiEvaluationPromises = [Promise.resolve([]), Promise.resolve([])];
       }
+
+      // Wait for both grading and AI evaluation to complete in parallel
+      const [gradingResponse, aiStylingResults, aiRequirementsResults] = await Promise.all([
+        gradingPromise,
+        ...aiEvaluationPromises
+      ]);
+
+      // Handle grading response
+      if (!gradingResponse.ok) {
+        const errorBody = await gradingResponse.json();
+        throw new Error(
+          errorBody.error || `API call failed with status: ${gradingResponse.status}`
+        );
+      }
+      gradingResult = await gradingResponse.json();
+      console.log("Received grading result from API:", gradingResult);
+
+      // AI results are already available from parallel execution
+      stylingResults = aiStylingResults;
+      requirementsResults = aiRequirementsResults;
+      console.log("AI styling results:", stylingResults);
+      console.log("AI requirements results:", requirementsResults);
 
       structuredResult = structureTestingData(
         gradingResult,
@@ -289,7 +290,7 @@ export const saveAssignment = async (
       );
       console.log(structuredResult);
     } catch (apiError) {
-      console.error("Fatal: Failed to get grading result from API.", apiError);
+      console.error("Fatal: Failed to get grading result from API or AI evaluation.", apiError);
     }
   }
 

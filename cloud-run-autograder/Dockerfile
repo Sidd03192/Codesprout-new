@@ -1,4 +1,4 @@
-# Use multi-stage build for optimization
+# Cloud Run optimized Dockerfile for Java autograder
 FROM maven:3.8.5-eclipse-temurin-17 AS dependency-cache
 
 # Create a minimal pom.xml for dependency caching
@@ -45,33 +45,41 @@ EOF
 # Pre-download dependencies and plugins
 RUN mvn dependency:go-offline -B
 
-# Final optimized image
+# Final Cloud Run optimized image
 FROM maven:3.8.5-eclipse-temurin-17
 
-# Install Python using the correct package manager for this image.
-# This command updates the package index, installs python3, and then cleans up
-# the cache to keep the final image size small.
+# Install Python and Node.js for the API server
 RUN apt-get update && \
-    apt-get install -y python3 && \
+    apt-get install -y python3 python3-pip curl && \
+    curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -y nodejs && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy cached Maven repository from previous stage
 COPY --from=dependency-cache /root/.m2 /root/.m2
 
-# Set up a workspace inside the container.
-WORKDIR /autograder
+# Set up workspace
+WORKDIR /app
 
-# Copy the helper scripts.
-COPY run.sh .
-COPY translate_results.py .
+# Copy autograder scripts
+COPY autograder-scripts/ ./autograder-scripts/
+COPY package.json ./
+COPY server.js ./
 
-# FIX: Remove Windows line endings to prevent execution errors.
-RUN sed -i 's/\r$//' run.sh
-RUN sed -i 's/\r$//' translate_results.py
+# Install Node.js dependencies for the API server
+RUN npm install
 
-# Make the run script executable.
-RUN chmod +x run.sh
+# Make scripts executable and fix line endings
+RUN chmod +x autograder-scripts/*.sh && \
+    sed -i 's/\r$//' autograder-scripts/*.sh && \
+    sed -i 's/\r$//' autograder-scripts/*.py
 
-# Set the entrypoint to run your script.
-# This script will now use the code mounted via volumes at runtime.
-ENTRYPOINT ["./run.sh"]
+# Expose port for Cloud Run
+EXPOSE 8080
+
+# Health check for Cloud Run
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8080/health || exit 1
+
+# Start the API server
+CMD ["npm", "start"]

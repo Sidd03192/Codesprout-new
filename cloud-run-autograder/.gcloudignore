@@ -1,0 +1,21 @@
+# This file specifies files that are intentionally untracked by gcloud
+# and should not be uploaded to Cloud Build
+
+.gcloudignore
+.git
+.gitignore
+README.md
+*.md
+.DS_Store
+.vscode/
+.idea/
+*.log
+*.tmp
+node_modules/
+coverage/
+test/
+tests/
+*.test.js
+*.spec.js
+.env*
+.nyc_output/
