@@ -84,7 +84,7 @@ export default function CreateAssignmentPage({
     title: isEdit ? assignmentData.title : "",
     description: isEdit ? assignmentData.description : "",
 
-    selectedStudentIds: isEdit ? assignmentData.student_ids : [],
+    selectedStudentIds: isEdit ? assignmentData.selected_students : [],
     codeTemplate:
       "// Write your code template here\nfunction example() {\n  // This line can be locked\n  console.log('Hello world');\n}\n",
     dueDate: isEdit ? new Date(assignmentData.due_at) : null,
@@ -223,12 +223,14 @@ export default function CreateAssignmentPage({
 
   const handleToggleStudent = (studentId) => {
     setFormData((prev) => {
-      const isSelected = prev.selectedStudentIds.includes(studentId);
+      const selectedIds = prev.selectedStudentIds ?? []; // default to []
+      const isSelected = selectedIds.includes(studentId);
+  
       return {
         ...prev,
         selectedStudentIds: isSelected
-          ? prev.selectedStudentIds.filter((id) => id !== studentId)
-          : [...prev.selectedStudentIds, studentId],
+          ? selectedIds.filter((id) => id !== studentId) // remove
+          : [...selectedIds, studentId], // add
       };
     });
   };
@@ -720,7 +722,7 @@ export default function CreateAssignmentPage({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     // Validate dates before submission
     if (!validateDates(startDate, dueDate)) {
       addToast({
@@ -732,7 +734,7 @@ export default function CreateAssignmentPage({
       });
       return;
     }
-
+  
     if (!startDate || !dueDate) {
       addToast({
         title: "Missing Dates",
@@ -743,126 +745,164 @@ export default function CreateAssignmentPage({
       });
       return;
     }
-
-    // setIsSubmitting(true); // Start loading
-    console.log("Form submitted:", formData);
-    const testing_url = await uploadTestcases();
-    console.log(testing_url);
-    const code = editorRef.current.getValue();
-    const description = descriptionRef.current.getJSON();
-    const assignmentData = {
-      class_id: formData.classId, // need to update thsi
-      teacher_id: session.user.id,
-      title: formData.title,
-      description: description, // Assuming this holds the text content from RichTextEditor
-      language: selectedLanguage,
-      code_template: code,
-      hints: "", // To be implemented
-      open_at: dateValueToDate(startDate).toISOString(),
-      due_at: dateValueToDate(dueDate).toISOString(),
-      created_at: new Date().toISOString(),
-      status: "inactive",
-      locked_lines: formData.lockedLines,
-      allow_late_submission: formData.allowLateSubmission,
-      allow_copy_paste: formData.allowCopyPaste,
-      allow_auto_complete: formData.allowAutocomplete,
-      auto_grade: formData.autoGrade,
-      show_results: formData.showResults,
-      check_style: formData.checkStyle,
-      testing_url: testing_url,
-      rubric: sections,
-    };
-
-    console.log("Submitting assignmentData to the database:", assignmentData);
-
+  
+    setIsSubmitting(true); // Start loading
+  
     try {
-      const { data: assignmentResult, error: assignmentError } = await supabase
-        .from("assignments")
-        .insert([assignmentData])
-        .select();
-
+      console.log("Form submitted:", formData);
+      const testing_url = await uploadTestcases();
+      console.log("Testing URL:", testing_url);
+      
+      const code = editorRef.current.getValue();
+      const description = descriptionRef.current.getJSON();
+      
+      // Create the submission data object (don't mutate the prop)
+      const submissionData = {
+        class_id: formData.classId,
+        teacher_id: session.user.id,
+        title: formData.title,
+        description: description,
+        language: selectedLanguage,
+        code_template: code,
+        hints: "",
+        open_at: dateValueToDate(startDate).toISOString(),
+        due_at: dateValueToDate(dueDate).toISOString(),
+        created_at: new Date().toISOString(),
+        status: "inactive",
+        locked_lines: formData.lockedLines,
+        allow_late_submission: formData.allowLateSubmission,
+        allow_copy_paste: formData.allowCopyPaste,
+        allow_auto_complete: formData.allowAutocomplete,
+        auto_grade: formData.autoGrade,
+        show_results: formData.showResults,
+        check_style: formData.checkStyle,
+        testing_url: testing_url,
+        rubric: sections,
+        selected_students: formData.selectedStudentIds,
+      };
+  
+      // If editing, include the existing ID
+      if (isEdit && assignmentData?.id) {
+        submissionData.id = assignmentData.id;
+      }
+  
+      console.log("Submitting data to the database:", submissionData);
+  
+      let assignmentResult;
+      let assignmentError;
+  
+      if (isEdit && assignmentData?.id) {
+        // UPDATE existing assignment
+        const result = await supabase
+          .from("assignments")
+          .update(submissionData)
+          .eq('id', assignmentData.id)
+          .select();
+        
+        assignmentResult = result.data;
+        assignmentError = result.error;
+      } else {
+        // INSERT new assignment
+        const result = await supabase
+          .from("assignments")
+          .insert([submissionData])
+          .select();
+        
+        assignmentResult = result.data;
+        assignmentError = result.error;
+      }
+  
       if (assignmentError) {
-        console.error("Error inserting assignment:", assignmentError);
-
+        console.error("Error with assignment:", assignmentError);
         addToast({
-          title: "Unexpected Error",
-          description: "An unexpected error occurred. Please try again.",
+          title: "Database Error",
+          description: `Failed to ${isEdit ? 'update' : 'create'} assignment: ${assignmentError.message}`,
           color: "danger",
           duration: 5000,
           variant: "solid",
         });
-        setIsSubmitting(false); // Stop loading
         return;
       }
-
-      console.log("Assignment created successfully:", assignmentResult);
-
+  
+      console.log(`Assignment ${isEdit ? 'updated' : 'created'} successfully:`, assignmentResult);
+  
       if (assignmentResult && assignmentResult.length > 0) {
-        const newAssignmentId = assignmentResult[0].id;
-
-        if (
-          formData.selectedStudentIds &&
-          formData.selectedStudentIds.length > 0
-        ) {
+        const assignmentId = assignmentResult[0].id;
+  
+        // Handle student assignments
+        if (formData.selectedStudentIds && formData.selectedStudentIds.length > 0) {
+          
+          // If editing, first delete existing student assignments
+          if (isEdit) {
+            const { error: deleteError } = await supabase
+              .from("assignment_students")
+              .delete()
+              .eq('assignment_id', assignmentId);
+  
+            if (deleteError) {
+              console.error("Error deleting existing student assignments:", deleteError);
+              // Continue anyway, as the assignment was created successfully
+            }
+          }
+  
+          // Insert new student assignments
           const assignmentStudentData = formData.selectedStudentIds.map(
             (studentId) => ({
-              assignment_id: newAssignmentId,
+              assignment_id: assignmentId,
               student_id: studentId,
               start_date: dateValueToDate(startDate).toISOString(),
               title: formData.title,
               due_date: dateValueToDate(dueDate).toISOString(),
             })
           );
-
-          console.log(
-            "Submitting assignmentStudentData:",
-            assignmentStudentData
-          );
-
-          const {
-            data: studentAssignmentResult,
-            error: studentAssignmentError,
-          } = await supabase
-            .from("assignment_students")
-            .insert(assignmentStudentData);
-
+  
+          console.log("Submitting assignmentStudentData:", assignmentStudentData);
+  
+          const { data: studentAssignmentResult, error: studentAssignmentError } = 
+            await supabase
+              .from("assignment_students")
+              .insert(assignmentStudentData)
+              .select();
+  
           if (studentAssignmentError) {
-            console.error(
-              "Error inserting student assignments:",
-              studentAssignmentError
-            );
+            console.error("Error inserting student assignments:", studentAssignmentError);
             addToast({
-              title: "Unexpected Error",
-              description: "An unexpected error occurred. Please try again.",
-              color: "danger",
+              title: "Partial Success",
+              description: `Assignment ${isEdit ? 'updated' : 'created'} but failed to assign to students: ${studentAssignmentError.message}`,
+              color: "warning",
               duration: 5000,
               variant: "solid",
             });
-            // Note: Here, the assignment is created, but student association failed.
-            // You might want to inform the user or handle this case specifically.
-            setIsSubmitting(false); // Stop loading
             return;
           }
-          console.log(
-            "Student assignments created successfully:",
-            studentAssignmentResult
-          );
+  
+          console.log("Student assignments created successfully:", studentAssignmentResult);
         } else {
           console.log("No students selected for this assignment.");
+          
+          // If editing and no students selected, remove all existing student assignments
+          if (isEdit) {
+            const { error: deleteError } = await supabase
+              .from("assignment_students")
+              .delete()
+              .eq('assignment_id', assignmentId);
+  
+            if (deleteError) {
+              console.error("Error removing student assignments:", deleteError);
+            }
+          }
         }
+  
         addToast({
-          title: "Assignment Created Successfully",
-          description:
-            "The assignment will now be visible to you in the assignments page",
+          title: `Assignment ${isEdit ? 'Updated' : 'Created'} Successfully`,
+          description: `The assignment will now be visible in the assignments page`,
           color: "success",
           duration: 5000,
           placement: "top-center",
           variant: "solid",
         });
       } else {
-        console.error(
-          "Assignment creation returned no result or empty result array."
-        );
+        console.error(`Assignment ${isEdit ? 'update' : 'creation'} returned no result.`);
         addToast({
           title: "Unexpected Error",
           description: "An unexpected error occurred. Please try again.",
@@ -874,7 +914,13 @@ export default function CreateAssignmentPage({
       }
     } catch (error) {
       console.error("An unexpected error occurred during submission:", error);
-      alert(`An unexpected error occurred: ${error.message}`);
+      addToast({
+        title: "Unexpected Error",
+        description: `An unexpected error occurred: ${error.message}`,
+        color: "danger",
+        duration: 5000,
+        variant: "solid",
+      });
     } finally {
       setIsSubmitting(false); // Stop loading in all cases
       setOpen(false);
@@ -1268,8 +1314,10 @@ export default function CreateAssignmentPage({
                                     isSelected={formData.selectedStudentIds?.includes(
                                       student.student_id
                                     )}
-                                    onValueChange={() =>
-                                      handleToggleStudent(student.student_id)
+                                    onValueChange={() =>{
+                                        handleToggleStudent(student.student_id)
+                                        console.log("selected: ",formData.selectedStudentIds);
+                                      }
                                     }
                                   />
                                   <div>

@@ -296,7 +296,7 @@ export default function Dashboard() {
 
       <div className="flex flex-1 flex-col overflow-hidden w-full">
         {/* Header */}
-        <header className="flex h-12 items-center  border-b  bg-zinc-900/50 justify-between  border-divider px-1">
+        <header className="flex h-12 items-center  border-b  bg-slate-950 justify-between  border-divider px-1">
           <div className="flex ">
             <Button
               isIconOnly
