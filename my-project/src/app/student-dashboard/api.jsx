@@ -191,7 +191,9 @@ export const saveAssignment = async (
   let requirementsResults = [];
 
   if (isSubmitting) {
-    console.log("Submitting... preparing to call grading API and AI evaluation in parallel.");
+    console.log(
+      "Submitting... preparing to call grading API and AI evaluation in parallel."
+    );
     try {
       // Start both grading API call and AI evaluation in parallel
       const gradingPromise = fetch(
@@ -262,16 +264,15 @@ export const saveAssignment = async (
       }
 
       // Wait for both grading and AI evaluation to complete in parallel
-      const [gradingResponse, aiStylingResults, aiRequirementsResults] = await Promise.all([
-        gradingPromise,
-        ...aiEvaluationPromises
-      ]);
+      const [gradingResponse, aiStylingResults, aiRequirementsResults] =
+        await Promise.all([gradingPromise, ...aiEvaluationPromises]);
 
       // Handle grading response
       if (!gradingResponse.ok) {
         const errorBody = await gradingResponse.json();
         throw new Error(
-          errorBody.error || `API call failed with status: ${gradingResponse.status}`
+          errorBody.error ||
+            `API call failed with status: ${gradingResponse.status}`
         );
       }
       gradingResult = await gradingResponse.json();
@@ -288,9 +289,11 @@ export const saveAssignment = async (
         stylingResults,
         requirementsResults
       );
-      console.log(structuredResult);
     } catch (apiError) {
-      console.error("Fatal: Failed to get grading result from API or AI evaluation.", apiError);
+      console.error(
+        "Fatal: Failed to get grading result from API or AI evaluation.",
+        apiError
+      );
     }
   }
 

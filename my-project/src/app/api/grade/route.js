@@ -51,9 +51,15 @@ async function gradeWithCloudRun(studentCode, testing_path) {
     const testFileName = testing_path.split("/").pop(); // Extract filename
 
     console.log(`Sending grading request to Cloud Run: ${CLOUD_RUN_URL}/grade`);
-    console.log(`Student code length: ${studentCode ? studentCode.length : 'null'}`);
+    console.log(
+      `Student code length: ${studentCode ? studentCode.length : "null"}`
+    );
     console.log(`Test file name: ${testFileName}`);
-    console.log(`Test file base64 length: ${testFileBase64 ? testFileBase64.length : 'null'}`);
+    console.log(
+      `Test file base64 length: ${
+        testFileBase64 ? testFileBase64.length : "null"
+      }`
+    );
 
     const requestBody = {
       studentCode: studentCode,

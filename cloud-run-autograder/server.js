@@ -83,12 +83,7 @@ async function processGradeRequest(req, res, jobId) {
     console.log(`[${jobId}] Processing grade request`);
 
     try {
-      console.log(`[${jobId}] === DATA EXTRACTION DEBUG ===`);
-      console.log(`[${jobId}] req.body:`, req.body ? Object.keys(req.body) : 'null');
-      console.log(`[${jobId}] req.files:`, req.files ? Object.keys(req.files) : 'null');
-      console.log(`[${jobId}] req.body.studentCode present:`, !!req.body?.studentCode);
-      console.log(`[${jobId}] req.body.testFileData present:`, !!req.body?.testFileData);
-      console.log(`[${jobId}] req.body.testFileName:`, req.body?.testFileName);
+      console.log(`[${jobId}] Processing grading request`);
       
       // Extract student code and test file
       const studentCode =
@@ -97,10 +92,7 @@ async function processGradeRequest(req, res, jobId) {
           ? req.files.studentCode[0].buffer.toString("utf8")
           : null);
 
-      console.log(`[${jobId}] Extracted studentCode length:`, studentCode ? studentCode.length : 'null');
-
       if (!studentCode) {
-        console.error(`[${jobId}] ERROR: Student code is missing`);
         return res.status(400).json({
           error: "Student code is required",
           jobId,
@@ -111,16 +103,13 @@ async function processGradeRequest(req, res, jobId) {
       let testFileName = null;
 
       if (req.files?.testFile) {
-        console.log(`[${jobId}] Using uploaded test file`);
         testFileBuffer = req.files.testFile[0].buffer;
         testFileName = req.files.testFile[0].originalname;
       } else if (req.body.testFileData && req.body.testFileName) {
-        console.log(`[${jobId}] Using base64 test file data`);
         // Base64 encoded test file data
         try {
           testFileBuffer = Buffer.from(req.body.testFileData, "base64");
           testFileName = req.body.testFileName;
-          console.log(`[${jobId}] Decoded test file buffer size:`, testFileBuffer.length);
         } catch (decodeError) {
           console.error(`[${jobId}] Base64 decode error:`, decodeError);
           return res.status(400).json({
@@ -130,11 +119,7 @@ async function processGradeRequest(req, res, jobId) {
         }
       }
 
-      console.log(`[${jobId}] Test file buffer:`, testFileBuffer ? testFileBuffer.length + ' bytes' : 'null');
-      console.log(`[${jobId}] Test file name:`, testFileName);
-
       if (!testFileBuffer || !testFileName) {
-        console.error(`[${jobId}] ERROR: Test file is missing`);
         return res.status(400).json({
           error: "Test file is required",
           jobId,
@@ -227,25 +212,49 @@ async function processAutograding(
 
   // Run autograder script
   console.log(`[${jobId}] Starting autograder execution`);
+  const startTime = Date.now();
 
+  // Use the reliable original script for now
   const autograderScript = path.join(__dirname, "autograder-scripts", "run.sh");
+  
   const command = `cd "${jobDir}" && bash "${autograderScript}"`;
 
   await execPromise(command);
-  console.log(`[${jobId}] Autograder execution completed`);
+  const endTime = Date.now();
+  console.log(`[${jobId}] Autograder execution completed in ${endTime - startTime}ms`);
 
   // Read and return results
   const resultsPath = path.join(resultsDir, "results.json");
 
+  console.log(`[${jobId}] === RESULTS DEBUG ===`);
+  console.log(`[${jobId}] Looking for results at: ${resultsPath}`);
+  
+  // List all files in results directory
+  try {
+    const resultsFiles = await fs.readdir(resultsDir);
+    console.log(`[${jobId}] Files in results directory:`, resultsFiles);
+  } catch (e) {
+    console.log(`[${jobId}] Could not read results directory:`, e.message);
+  }
+
+  // List all files in job directory
+  try {
+    const allFiles = await fs.readdir(jobDir);
+    console.log(`[${jobId}] Files in job directory:`, allFiles);
+  } catch (e) {
+    console.log(`[${jobId}] Could not read job directory:`, e.message);
+  }
+
   try {
     await fs.access(resultsPath);
     const resultsData = await fs.readFile(resultsPath, "utf8");
+    console.log(`[${jobId}] Raw results.json content:`, resultsData.substring(0, 500));
     const results = JSON.parse(resultsData);
 
     console.log(`[${jobId}] Results parsed successfully`);
     return results;
   } catch (error) {
-    console.error(`[${jobId}] Results file not found or invalid`);
+    console.error(`[${jobId}] Results file error:`, error.message);
 
     // Try to read raw output for debugging
     const rawOutputPath = path.join(resultsDir, "raw_output.log");
@@ -253,8 +262,27 @@ async function processAutograding(
 
     try {
       rawOutput = await fs.readFile(rawOutputPath, "utf8");
+      console.log(`[${jobId}] Raw output content:`, rawOutput.substring(0, 500));
     } catch (e) {
+      console.log(`[${jobId}] No raw output file:`, e.message);
       rawOutput = "No raw output available";
+    }
+
+    // Try to read any other log files
+    try {
+      const logFiles = await fs.readdir(resultsDir);
+      for (const file of logFiles) {
+        if (file.endsWith('.log') || file.endsWith('.txt')) {
+          try {
+            const content = await fs.readFile(path.join(resultsDir, file), "utf8");
+            console.log(`[${jobId}] Content of ${file}:`, content.substring(0, 300));
+          } catch (e) {
+            console.log(`[${jobId}] Could not read ${file}:`, e.message);
+          }
+        }
+      }
+    } catch (e) {
+      console.log(`[${jobId}] Could not list log files:`, e.message);
     }
 
     return {
