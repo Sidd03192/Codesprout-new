@@ -51,6 +51,22 @@ async function gradeWithCloudRun(studentCode, testing_path) {
     const testFileName = testing_path.split("/").pop(); // Extract filename
 
     console.log(`Sending grading request to Cloud Run: ${CLOUD_RUN_URL}/grade`);
+    console.log(`Student code length: ${studentCode ? studentCode.length : 'null'}`);
+    console.log(`Test file name: ${testFileName}`);
+    console.log(`Test file base64 length: ${testFileBase64 ? testFileBase64.length : 'null'}`);
+
+    const requestBody = {
+      studentCode: studentCode,
+      testFileData: testFileBase64,
+      testFileName: testFileName,
+    };
+
+    console.log(`Request body keys:`, Object.keys(requestBody));
+    console.log(`Request body structure:`, {
+      studentCode: !!requestBody.studentCode,
+      testFileData: !!requestBody.testFileData,
+      testFileName: !!requestBody.testFileName,
+    });
 
     // Send request to Cloud Run service
     const cloudRunResponse = await fetch(`${CLOUD_RUN_URL}/grade`, {
@@ -58,11 +74,7 @@ async function gradeWithCloudRun(studentCode, testing_path) {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        studentCode: studentCode,
-        testFileData: testFileBase64,
-        testFileName: testFileName,
-      }),
+      body: JSON.stringify(requestBody),
       // 10 minute timeout for complex grading
       signal: AbortSignal.timeout(600000),
     });

@@ -44,25 +44,63 @@ app.get("/health", (req, res) => {
 });
 
 // Main autograding endpoint
-app.post(
-  "/grade",
-  upload.fields([
+app.post("/grade", async (req, res) => {
+  const jobId = uuidv4();
+  
+  console.log(`[${jobId}] === GRADING REQUEST DEBUG ===`);
+  console.log(`[${jobId}] Content-Type:`, req.headers['content-type']);
+  console.log(`[${jobId}] Request method:`, req.method);
+  console.log(`[${jobId}] Request URL:`, req.url);
+  console.log(`[${jobId}] Body keys:`, Object.keys(req.body || {}));
+  console.log(`[${jobId}] Files:`, req.files ? 'present' : 'not present');
+  
+  // Handle both multipart and JSON requests
+  const handleMultipart = upload.fields([
     { name: "studentCode", maxCount: 1 },
     { name: "testFile", maxCount: 1 },
-  ]),
-  async (req, res) => {
-    const jobId = uuidv4();
-    console.log(`[${jobId}] Grading job started`);
+  ]);
+
+  // Only use multer if Content-Type is multipart/form-data
+  if (req.headers['content-type'] && req.headers['content-type'].includes('multipart/form-data')) {
+    console.log(`[${jobId}] Using multipart handler`);
+    return new Promise((resolve, reject) => {
+      handleMultipart(req, res, (err) => {
+        if (err) {
+          console.error(`[${jobId}] Multer error:`, err);
+          return reject(err);
+        }
+        processGradeRequest(req, res, jobId).then(resolve).catch(reject);
+      });
+    });
+  } else {
+    console.log(`[${jobId}] Using JSON handler`);
+    // Handle JSON requests directly
+    return processGradeRequest(req, res, jobId);
+  }
+});
+
+async function processGradeRequest(req, res, jobId) {
+    console.log(`[${jobId}] Processing grade request`);
 
     try {
+      console.log(`[${jobId}] === DATA EXTRACTION DEBUG ===`);
+      console.log(`[${jobId}] req.body:`, req.body ? Object.keys(req.body) : 'null');
+      console.log(`[${jobId}] req.files:`, req.files ? Object.keys(req.files) : 'null');
+      console.log(`[${jobId}] req.body.studentCode present:`, !!req.body?.studentCode);
+      console.log(`[${jobId}] req.body.testFileData present:`, !!req.body?.testFileData);
+      console.log(`[${jobId}] req.body.testFileName:`, req.body?.testFileName);
+      
       // Extract student code and test file
       const studentCode =
         req.body.studentCode ||
-        (req.files.studentCode
+        (req.files?.studentCode
           ? req.files.studentCode[0].buffer.toString("utf8")
           : null);
 
+      console.log(`[${jobId}] Extracted studentCode length:`, studentCode ? studentCode.length : 'null');
+
       if (!studentCode) {
+        console.error(`[${jobId}] ERROR: Student code is missing`);
         return res.status(400).json({
           error: "Student code is required",
           jobId,
@@ -72,16 +110,31 @@ app.post(
       let testFileBuffer = null;
       let testFileName = null;
 
-      if (req.files.testFile) {
+      if (req.files?.testFile) {
+        console.log(`[${jobId}] Using uploaded test file`);
         testFileBuffer = req.files.testFile[0].buffer;
         testFileName = req.files.testFile[0].originalname;
       } else if (req.body.testFileData && req.body.testFileName) {
+        console.log(`[${jobId}] Using base64 test file data`);
         // Base64 encoded test file data
-        testFileBuffer = Buffer.from(req.body.testFileData, "base64");
-        testFileName = req.body.testFileName;
+        try {
+          testFileBuffer = Buffer.from(req.body.testFileData, "base64");
+          testFileName = req.body.testFileName;
+          console.log(`[${jobId}] Decoded test file buffer size:`, testFileBuffer.length);
+        } catch (decodeError) {
+          console.error(`[${jobId}] Base64 decode error:`, decodeError);
+          return res.status(400).json({
+            error: "Invalid base64 test file data",
+            jobId,
+          });
+        }
       }
 
+      console.log(`[${jobId}] Test file buffer:`, testFileBuffer ? testFileBuffer.length + ' bytes' : 'null');
+      console.log(`[${jobId}] Test file name:`, testFileName);
+
       if (!testFileBuffer || !testFileName) {
+        console.error(`[${jobId}] ERROR: Test file is missing`);
         return res.status(400).json({
           error: "Test file is required",
           jobId,
@@ -126,8 +179,7 @@ app.post(
         jobId,
       });
     }
-  }
-);
+}
 
 async function processAutograding(
   jobId,
