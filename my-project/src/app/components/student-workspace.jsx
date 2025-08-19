@@ -86,6 +86,7 @@ export const CodingInterface = ({
   const [initialCode, setInitialCode] = useState("");
   const [timeUp, setTimeUp] = useState(false);
   const [assignmentData, setAssignmentData] = useState(null);
+  const [realtimeSubmissionData, setRealtimeSubmissionData] = useState(submissionData);
 
   useEffect(() => {
     if (assignmentData?.due_at) {
@@ -93,6 +94,52 @@ export const CodingInterface = ({
       console.log("Due date:", assignmentData?.due_at);
     }
   }, [assignmentData?.due_at]);
+
+  // Real-time subscription for grading updates
+  useEffect(() => {
+    if (isPreview || role === "teacher" || !id) return;
+
+    const setupRealtimeSubscription = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      
+      if (!user) return;
+
+      const channel = supabase
+        .channel(`assignment-${id}-student-${user.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'assignment_students',
+            filter: `student_id=eq.${user.id} AND assignment_id=eq.${id}`,
+          },
+          (payload) => {
+            console.log('Real-time grading update received:', payload);
+            if (payload.new?.grading_data) {
+              setRealtimeSubmissionData(prev => ({
+                ...prev,
+                grading_data: payload.new.grading_data,
+                status: payload.new.status
+              }));
+              // Auto-switch to results tab when grading is complete
+              if (payload.new.status === 'submitted' && payload.new.grading_data) {
+                setActiveTab('results');
+              }
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    };
+
+    setupRealtimeSubscription();
+  }, [id, isPreview, role, supabase]);
 
   const fetchDataForAssignment = useCallback(async () => {
     if (isPreview) {
@@ -148,6 +195,10 @@ export const CodingInterface = ({
       const due_time = new Date(assignmentData?.due_at).getTime();
       if (due_time < Date.now()) {
         setTimeUp(true);
+        setActiveTab("results");
+      }
+      // Set default tab based on submission status
+      if (submissionData?.status === 'submitted') {
         setActiveTab("results");
       }
     } catch (error) {
@@ -237,6 +288,9 @@ export const CodingInterface = ({
       }
       if (submit) {
         console.log("Assignment data submitted successfully:", data);
+        
+        // Switch to results tab after successful submission
+        setActiveTab("results");
 
         addToast({
           title: "Assignment Submitted",
@@ -575,19 +629,21 @@ export const CodingInterface = ({
               {activeTab === "results" && (
                 <div className="w-full h-full flex  max-h-full ">
                   <div className="  w-full   max-h-full bg-transparent">
-                    {submissionData?.grading_data ? (
+                    {realtimeSubmissionData?.grading_data ? (
                       <Results
                         id={assignmentData?.id}
                         editorRef={editorRef}
                         rubric={assignmentData?.rubric}
-                        gradingData={submissionData?.grading_data}
+                        gradingData={realtimeSubmissionData?.grading_data}
                         role={role}
                       />
                     ) : (
                       <div className="flex flex-col gap-5 justify-center items-center h-full">
                         <Bubbles size={200} className="text-gray-400" />
                         <p className="text-gray-400">
-                          Relaxxx.... No grades or results available yet.
+                          {realtimeSubmissionData?.status === 'submitted' ? 
+                            'Your assignment is being graded... Please wait.' : 
+                            'Relaxxx.... No grades or results available yet.'}
                         </p>
                       </div>
                     )}
