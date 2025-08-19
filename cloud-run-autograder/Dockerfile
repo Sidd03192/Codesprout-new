@@ -50,10 +50,15 @@ FROM maven:3.8.5-eclipse-temurin-17
 
 # Install Python and Node.js for the API server
 RUN apt-get update && \
-    apt-get install -y python3 python3-pip curl && \
+    apt-get install -y python3 python3-pip curl wget && \
     curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
     apt-get install -y nodejs && \
     rm -rf /var/lib/apt/lists/*
+
+# Pre-cache JUnit standalone JAR for fast script
+RUN mkdir -p /app/lib && \
+    wget -q -O /app/lib/junit-platform-console-standalone-1.9.3.jar \
+    "https://repo1.maven.org/maven2/org/junit/platform/junit-platform-console-standalone/1.9.3/junit-platform-console-standalone-1.9.3.jar"
 
 # Copy cached Maven repository from previous stage
 COPY --from=dependency-cache /root/.m2 /root/.m2

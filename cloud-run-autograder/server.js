@@ -210,85 +210,149 @@ async function processAutograding(
   await fs.writeFile(path.join(sourceDir, "Solution.java"), studentCode);
   console.log(`[${jobId}] Saved student code`);
 
-  // Run autograder script
+  // Run autograder script with smart selection
   console.log(`[${jobId}] Starting autograder execution`);
   const startTime = Date.now();
 
-  // Use the reliable original script for now
-  const autograderScript = path.join(__dirname, "autograder-scripts", "run.sh");
+  // Smart script selection based on test complexity
+  const isSimpleTest = !isZipFile && testFileName.endsWith('.java');
+  let scriptName = isSimpleTest ? "run-fast.sh" : "run.sh";
+  let autograderScript = path.join(__dirname, "autograder-scripts", scriptName);
   
-  const command = `cd "${jobDir}" && bash "${autograderScript}"`;
+  console.log(`[${jobId}] Selected ${scriptName} for ${isSimpleTest ? 'simple Java' : 'complex'} test`);
+  
+  let command = `cd "${jobDir}" && timeout 60s bash "${autograderScript}"`;
 
-  await execPromise(command);
-  const endTime = Date.now();
-  console.log(`[${jobId}] Autograder execution completed in ${endTime - startTime}ms`);
+  try {
+    await execPromise(command);
+    const endTime = Date.now();
+    console.log(`[${jobId}] Autograder execution completed in ${endTime - startTime}ms`);
+  } catch (error) {
+    const endTime = Date.now();
+    console.log(`[${jobId}] Autograder execution failed in ${endTime - startTime}ms`);
+    
+    // If fast script failed (exit code 1 = fallback needed), try Maven script
+    if (isSimpleTest && error.code === 1) {
+      console.log(`[${jobId}] Fast script requested fallback, trying Maven script`);
+      scriptName = "run.sh";
+      autograderScript = path.join(__dirname, "autograder-scripts", scriptName);
+      command = `cd "${jobDir}" && timeout 60s bash "${autograderScript}"`;
+      
+      const fallbackStartTime = Date.now();
+      try {
+        await execPromise(command);
+        const fallbackEndTime = Date.now();
+        console.log(`[${jobId}] Maven fallback completed in ${fallbackEndTime - fallbackStartTime}ms`);
+      } catch (fallbackError) {
+        console.error(`[${jobId}] Both scripts failed:`, fallbackError.message);
+        // Let the error be handled by the results parsing below
+      }
+    } else {
+      console.error(`[${jobId}] Script execution error:`, error.message);
+      // Let the error be handled by the results parsing below
+    }
+  }
 
-  // Read and return results
+  // Read and return results with comprehensive error handling
   const resultsPath = path.join(resultsDir, "results.json");
-
-  console.log(`[${jobId}] === RESULTS DEBUG ===`);
-  console.log(`[${jobId}] Looking for results at: ${resultsPath}`);
   
-  // List all files in results directory
-  try {
-    const resultsFiles = await fs.readdir(resultsDir);
-    console.log(`[${jobId}] Files in results directory:`, resultsFiles);
-  } catch (e) {
-    console.log(`[${jobId}] Could not read results directory:`, e.message);
-  }
-
-  // List all files in job directory
-  try {
-    const allFiles = await fs.readdir(jobDir);
-    console.log(`[${jobId}] Files in job directory:`, allFiles);
-  } catch (e) {
-    console.log(`[${jobId}] Could not read job directory:`, e.message);
-  }
+  console.log(`[${jobId}] Reading results from: ${resultsPath}`);
 
   try {
+    // Check if results.json exists and is readable
     await fs.access(resultsPath);
     const resultsData = await fs.readFile(resultsPath, "utf8");
-    console.log(`[${jobId}] Raw results.json content:`, resultsData.substring(0, 500));
-    const results = JSON.parse(resultsData);
-
-    console.log(`[${jobId}] Results parsed successfully`);
-    return results;
-  } catch (error) {
-    console.error(`[${jobId}] Results file error:`, error.message);
-
-    // Try to read raw output for debugging
-    const rawOutputPath = path.join(resultsDir, "raw_output.log");
-    let rawOutput = "";
-
+    
+    // Validate JSON format
+    let results;
     try {
-      rawOutput = await fs.readFile(rawOutputPath, "utf8");
-      console.log(`[${jobId}] Raw output content:`, rawOutput.substring(0, 500));
-    } catch (e) {
-      console.log(`[${jobId}] No raw output file:`, e.message);
-      rawOutput = "No raw output available";
+      results = JSON.parse(resultsData);
+      console.log(`[${jobId}] Successfully parsed results.json`);
+    } catch (parseError) {
+      console.error(`[${jobId}] Invalid JSON in results.json:`, parseError.message);
+      throw new Error(`Invalid JSON format: ${parseError.message}`);
     }
 
-    // Try to read any other log files
+    // Validate results structure
+    if (results.error) {
+      console.log(`[${jobId}] Results contain error:`, results.error);
+      return results; // Return error results as-is
+    }
+
+    // Validate successful results structure
+    if (typeof results.totalPointsAchieved !== 'number' || 
+        typeof results.maxTotalPoints !== 'number' || 
+        !Array.isArray(results.testResults)) {
+      console.error(`[${jobId}] Invalid results structure:`, Object.keys(results));
+      throw new Error("Results missing required fields");
+    }
+
+    console.log(`[${jobId}] Valid results: ${results.totalPointsAchieved}/${results.maxTotalPoints} points`);
+    return results;
+
+  } catch (error) {
+    console.error(`[${jobId}] Failed to read results.json:`, error.message);
+
+    // Comprehensive error recovery
+    let errorDetails = "Unknown error occurred during grading";
+    let rawOutput = "";
+
+    // Try to gather diagnostic information
     try {
-      const logFiles = await fs.readdir(resultsDir);
-      for (const file of logFiles) {
-        if (file.endsWith('.log') || file.endsWith('.txt')) {
-          try {
-            const content = await fs.readFile(path.join(resultsDir, file), "utf8");
-            console.log(`[${jobId}] Content of ${file}:`, content.substring(0, 300));
-          } catch (e) {
-            console.log(`[${jobId}] Could not read ${file}:`, e.message);
+      const resultsFiles = await fs.readdir(resultsDir);
+      console.log(`[${jobId}] Files in results directory:`, resultsFiles);
+
+      // Look for specific error files
+      const errorFiles = ['compile_errors.log', 'raw_output.log', 'test_output.log'];
+      for (const errorFile of errorFiles) {
+        try {
+          const errorContent = await fs.readFile(path.join(resultsDir, errorFile), "utf8");
+          if (errorContent.trim()) {
+            console.log(`[${jobId}] Found ${errorFile}:`, errorContent.substring(0, 200));
+            if (errorFile === 'compile_errors.log' && errorContent.trim()) {
+              errorDetails = `Compilation failed: ${errorContent.trim()}`;
+            } else if (errorFile === 'raw_output.log') {
+              rawOutput = errorContent;
+            }
+          }
+        } catch (e) {
+          // File doesn't exist or can't be read - continue checking others
+        }
+      }
+
+      // If no specific error found, try to read any log file
+      if (errorDetails === "Unknown error occurred during grading") {
+        for (const file of resultsFiles) {
+          if (file.endsWith('.log') || file.endsWith('.txt')) {
+            try {
+              const content = await fs.readFile(path.join(resultsDir, file), "utf8");
+              if (content.trim()) {
+                console.log(`[${jobId}] Content of ${file}:`, content.substring(0, 200));
+                rawOutput = content;
+                errorDetails = `Script execution failed - check logs`;
+                break;
+              }
+            } catch (e) {
+              // Continue to next file
+            }
           }
         }
       }
+
     } catch (e) {
-      console.log(`[${jobId}] Could not list log files:`, e.message);
+      console.error(`[${jobId}] Could not read results directory:`, e.message);
+      errorDetails = "Could not access grading results";
     }
 
+    // Return comprehensive error response
     return {
-      error: "Autograder did not produce valid results",
-      details: "Check compilation errors or test configuration",
-      rawOutput,
+      error: "Autograder execution failed",
+      details: errorDetails,
+      rawOutput: rawOutput || "No output captured",
+      totalPointsAchieved: 0,
+      maxTotalPoints: 1,
+      testResults: [],
+      feedback: "Grading failed - please check your code and try again"
     };
   }
 }
