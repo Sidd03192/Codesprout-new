@@ -73,6 +73,38 @@ export const getAssignmentDetails = async (assignment_id) => {
   }
 };
 
+export const joinClassroomByToken = async (token, userId) => {
+  console.log("Joining classroom by token:", token);
+  const supabase = await createClient();
+  
+  try {
+    // Call the API to handle token-based joining
+    const response = await fetch(`/api/classroom/join/${token}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Token join error:", data.error);
+      return { success: false, error: data.error };
+    }
+
+    return { 
+      success: true, 
+      class_id: data.class_id,
+      class_name: data.class_name,
+      already_enrolled: data.already_enrolled
+    };
+  } catch (error) {
+    console.error("Error joining by token:", error);
+    return { success: false, error: "Failed to join classroom" };
+  }
+};
+
 export const joinClassroom = async (joinCode, userId) => {
   console.log("hello");
   const supabase = await createClient();

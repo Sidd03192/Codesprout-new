@@ -48,6 +48,7 @@ app.post("/grade", async (req, res) => {
   const jobId = uuidv4();
   
   console.log(`[${jobId}] === GRADING REQUEST DEBUG ===`);
+  console.log(`[${jobId}] just a check`);
   console.log(`[${jobId}] Content-Type:`, req.headers['content-type']);
   console.log(`[${jobId}] Request method:`, req.method);
   console.log(`[${jobId}] Request URL:`, req.url);

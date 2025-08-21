@@ -49,7 +49,6 @@ import {
   code,
 } from "@heroui/react";
 import { createClient } from "../../../utils/supabase/client";
-import { getAssignmentDetails, saveAssignment } from "../student-dashboard/api";
 import { executeCode } from "./editor/api";
 import "./assignment/RichText/editor-styles.css"; // Import highlight.js theme
 import { Results } from "./results";
@@ -70,6 +69,8 @@ export const CodingInterface = ({
   previewData,
   role,
   submissionData,
+  assignmentData,
+  onSaveAssignment,
 }) => {
   const supabase = createClient();
   const [activeTab, setActiveTab] = useState("Description");
@@ -81,130 +82,197 @@ export const CodingInterface = ({
   const [topHeight, setTopHeight] = useState(65);
   const [time, setTime] = useState("-");
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [initialCode, setInitialCode] = useState("");
   const [timeUp, setTimeUp] = useState(false);
-  const [assignmentData, setAssignmentData] = useState(null);
   const [realtimeSubmissionData, setRealtimeSubmissionData] = useState(submissionData);
 
   useEffect(() => {
-    if (assignmentData?.due_at) {
-      setDueDate(new Date(assignmentData?.due_at));
-      console.log("Due date:", assignmentData?.due_at);
+    const currentData = isPreview ? previewData : assignmentData;
+    if (currentData?.due_at) {
+      setDueDate(new Date(currentData.due_at));
+      console.log("Due date:", currentData.due_at);
     }
-  }, [assignmentData?.due_at]);
+  }, [assignmentData?.due_at, previewData?.due_at, isPreview]);
 
   // Real-time subscription for grading updates
   useEffect(() => {
     if (isPreview || role === "teacher" || !id) return;
 
-    const setupRealtimeSubscription = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      
-      if (!user) return;
+    let cleanup = null;
 
-      const channel = supabase
-        .channel(`assignment-${id}-student-${user.id}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'assignment_students',
-            filter: `student_id=eq.${user.id} AND assignment_id=eq.${id}`,
-          },
-          (payload) => {
-            console.log('Real-time grading update received:', payload);
-            if (payload.new?.grading_data) {
-              setRealtimeSubmissionData(prev => ({
-                ...prev,
-                grading_data: payload.new.grading_data,
-                status: payload.new.status
-              }));
-              // Auto-switch to results tab when grading is complete
-              if (payload.new.status === 'submitted' && payload.new.grading_data) {
-                setActiveTab('results');
+    const setupRealtimeSubscription = async () => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        
+        if (!user) {
+          console.log('No authenticated user found for real-time subscription');
+          return;
+        }
+
+        console.log('Setting up real-time subscription for assignment:', id, 'user:', user.id);
+
+        const channel = supabase
+          .channel(`assignment-${id}-student-${user.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: 'UPDATE',
+              schema: 'public',
+              table: 'assignment_students',
+              filter: `student_id=eq.${user.id} AND assignment_id=eq.${id}`,
+            },
+            (payload) => {
+              console.log('Real-time grading update received:', payload);
+              if (payload.new?.grading_data) {
+                setRealtimeSubmissionData(prev => ({
+                  ...prev,
+                  grading_data: payload.new.grading_data,
+                  status: payload.new.status,
+                  last_updated: new Date().toISOString()
+                }));
+                // Auto-switch to results tab when grading is complete
+                if (payload.new.status === 'submitted' && payload.new.grading_data) {
+                  setActiveTab('results');
+                }
               }
             }
-          }
-        )
-        .subscribe();
+          )
+          .subscribe((status) => {
+            console.log('Subscription status:', status);
+            if (status === 'SUBSCRIBED') {
+              console.log('Successfully subscribed to real-time updates');
+            } else if (status === 'CLOSED') {
+              console.log('Real-time subscription closed');
+            } else if (status === 'CHANNEL_ERROR') {
+              console.error('Real-time subscription error');
+            }
+          });
 
-      return () => {
-        supabase.removeChannel(channel);
-      };
+        cleanup = () => {
+          console.log('Cleaning up real-time subscription');
+          supabase.removeChannel(channel);
+        };
+      } catch (error) {
+        console.error('Error setting up real-time subscription:', error);
+      }
     };
 
     setupRealtimeSubscription();
+
+    return () => {
+      if (cleanup) {
+        cleanup();
+      }
+    };
   }, [id, isPreview, role, supabase]);
 
-  const fetchDataForAssignment = useCallback(async () => {
-    if (isPreview) {
-      setAssignmentData(previewData);
-      console.log("Preview mode, skipping data fetch.");
+  // Initialize component with passed data
+  useEffect(() => {
+    const dataToUse = isPreview ? previewData : assignmentData;
+    
+    if (!dataToUse) {
+      console.log(isPreview ? "No preview data provided" : "No assignment data provided");
       return;
     }
 
-    if (!id) {
-      console.log("No assignment ID provided.");
-      return;
-    }
-    if (sessionStorage.getItem(`assignment-${id}`)) {
-      setIsLoading(false);
-      console.log("Loading assignment data from session storage for ID:", id);
-      console.log(
-        "Assignment data in session storage:",
-        sessionStorage.getItem(`assignment-${id}`)
-      );
-      const savedData = sessionStorage.getItem(`assignment-${id}`);
-      console.log("Saved data:", savedData);
-      if (savedData) {
-        console.log("Parsing saved data from session storage...");
-        setAssignmentData(JSON.parse(savedData));
-        const due_time = new Date(assignmentData?.due_at).getTime();
-        if (due_time < Date.now()) {
-          console.log("Assignment is past due, setting time up." + due_time);
-          setTimeUp(true);
-          setActiveTab("results");
-        }
-        return;
-      }
-    } else {
-      console.log("No assignment data found in session storage for ID:", id);
-    }
-    try {
-      console.log("Fetching assignment data...", id);
-      setIsLoading(true);
-      const data = await getAssignmentDetails(id);
-      setAssignmentData(data);
-      if (submissionData?.submitted_code) {
-        setAssignmentData((prevAssignmentData) => ({
-          ...prevAssignmentData,
-          code_template: submissionData.submitted_code,
-        }));
-      }
-
-      // update code based on most recently submitted version:
-      setInitialCode(data.code_template);
-      console.log("Initial code set:", data.code_template || "");
-      console.log("Assignment data fetched:", data);
-      setIsLoading(false);
-      const due_time = new Date(assignmentData?.due_at).getTime();
+    // Set initial code from submission or template
+    const codeToUse = submissionData?.submitted_code || dataToUse.code_template || "";
+    setInitialCode(codeToUse);
+    
+    // Check if assignment is past due (only for non-preview mode)
+    if (!isPreview && dataToUse.due_at) {
+      const due_time = new Date(dataToUse.due_at).getTime();
       if (due_time < Date.now()) {
         setTimeUp(true);
         setActiveTab("results");
       }
-      // Set default tab based on submission status
-      if (submissionData?.status === 'submitted') {
-        setActiveTab("results");
-      }
-    } catch (error) {
-      console.error("Error fetching assignment data:", error);
     }
-  }, []);
+    
+    // Set default tab based on submission status
+    if (submissionData?.status === 'submitted') {
+      setActiveTab("results");
+    }
+    
+    console.log(isPreview ? "Preview data initialized" : "Assignment data initialized from props");
+  }, [assignmentData, submissionData, isPreview, previewData]);
+
+  // Auto-save functionality
+  useEffect(() => {
+    if (isPreview || role === "teacher" || !id || !assignmentData) return;
+    if (typeof window === 'undefined') return; // Browser check
+
+    const autoSaveKey = `autosave_${id}`;
+
+    // Function to auto-save code
+    const autoSaveCode = () => {
+      if (!editorRef.current || typeof window === 'undefined') return;
+      
+      const currentCode = editorRef.current.getValue();
+      if (currentCode && currentCode !== initialCode) {
+        try {
+          const autoSaveData = {
+            code: currentCode,
+            timestamp: Date.now(),
+            assignmentId: id
+          };
+          localStorage.setItem(autoSaveKey, JSON.stringify(autoSaveData));
+          console.log('Auto-saved code for assignment:', id);
+        } catch (error) {
+          console.error('Auto-save failed:', error);
+        }
+      }
+    };
+
+    // Set up auto-save interval (every 30 seconds)
+    const autoSaveInterval = setInterval(autoSaveCode, 30000);
+
+    // Check for existing auto-saved code on mount
+    const checkAutoSavedCode = () => {
+      if (typeof window === 'undefined') return;
+      
+      try {
+        const saved = localStorage.getItem(autoSaveKey);
+        if (saved) {
+          const { code, timestamp } = JSON.parse(saved);
+          
+          // Check if auto-save is recent (within 24 hours)
+          const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+          if (Date.now() - timestamp < maxAge && code !== initialCode) {
+            // Ask user if they want to restore auto-saved code
+            const shouldRestore = window.confirm(
+              "We found unsaved changes from your previous session. Would you like to restore them?"
+            );
+            
+            if (shouldRestore && editorRef.current) {
+              editorRef.current.setValue(code);
+              console.log('Restored auto-saved code');
+            }
+          } else {
+            // Remove old auto-save data
+            localStorage.removeItem(autoSaveKey);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking auto-saved code:', error);
+      }
+    };
+
+    // Check for auto-saved code after a short delay to ensure editor is ready
+    const checkTimeout = setTimeout(checkAutoSavedCode, 1000);
+
+    // Cleanup function
+    return () => {
+      clearInterval(autoSaveInterval);
+      clearTimeout(checkTimeout);
+      
+      // Auto-save on unmount
+      autoSaveCode();
+    };
+  }, [id, assignmentData, initialCode, isPreview, role]);
 
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
@@ -247,79 +315,60 @@ export const CodingInterface = ({
       console.warn("Preview mode, skipping save/submit.");
       return;
     }
-    const submit = isSubmit || false;
-    const due_time = new Date(assignmentData?.due_at).getTime();
-    if (Date.now() - 60 * 300 > due_time || !assignmentData) {
-      console.warn("Assignment is past due, cannot submit."); // one minute buffer
-      setSaving(false);
-
+    
+    if (!onSaveAssignment) {
+      console.error("No save handler provided");
       return;
     }
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    const student_id = user?.id;
-    console.log("Current user ID:", student_id);
-    console.log("time ", Date.now().toLocaleString(), "due time", due_time);
-    console.log(" Attempting to save assignment data:", assignmentData);
+    const submit = isSubmit || false;
+    const currentData = isPreview ? previewData : assignmentData;
+    const due_time = new Date(currentData?.due_at).getTime();
+    if (Date.now() - 60 * 300 > due_time || !currentData) {
+      console.warn("Assignment is past due, cannot submit."); // one minute buffer
+      setSaving(false);
+      return;
+    }
+
     if (isSubmit) {
       setIsSubmitting(true);
     } else {
       setSaving(true);
     }
-    const student_code = editorRef?.current?.getValue()
-      ? editorRef?.current?.getValue()
-      : assignmentData?.code_template;
-    const data = await saveAssignment(
-      student_code,
-      student_id,
-      id,
-      submit,
-      new Date().toISOString(), // Use current date and time for submission
-      assignmentData.testing_url,
-      assignmentData.rubric
-    );
-    if (data === "success") {
-      if (submit) {
-        setIsSubmitting(false);
-      } else {
-        setSaving(false);
-      }
-      if (submit) {
-        console.log("Assignment data submitted successfully:", data);
-        
-        // Switch to results tab after successful submission
-        setActiveTab("results");
 
-        addToast({
-          title: "Assignment Submitted",
-          description: "Your assignment has been submitted successfully.",
-          status: "success",
-          color: "success",
-          variant: "bordered",
-          duration: 3000,
-        });
+    const student_code = editorRef?.current?.getValue() || currentData?.code_template || "";
+    
+    try {
+      const data = await onSaveAssignment(student_code, submit);
+      if (data === "success") {
+        if (submit) {
+          console.log("Assignment data submitted successfully");
+          setActiveTab("results");
+          addToast({
+            title: "Assignment Submitted",
+            description: "Your assignment has been submitted successfully.",
+            status: "success",
+            color: "success",
+            variant: "bordered",
+            duration: 3000,
+          });
+        } else {
+          console.log("Assignment data saved successfully");
+          addToast({
+            title: "Assignment Saved",
+            description: "Your assignment progress has been saved.",
+            status: "success",
+            color: "success",
+            variant: "bordered",
+            duration: 3000,
+          });
+        }
       } else {
-        console.log("Assignment data saved successfully:", data);
-
-        addToast({
-          title: "Assignment Saved",
-          description: "Your assignment progress has been saved.",
-          status: "success",
-          color: "success",
-          variant: "bordered",
-          duration: 3000,
-        });
+        throw new Error(submit ? "Failed to submit assignment" : "Failed to save assignment");
       }
-    } else {
+    } catch (error) {
+      console.error("Save/submit error:", error);
       if (submit) {
-        setIsSubmitting(false);
-      } else {
-        setSaving(false);
-      }
-      if (submit) {
-        console.error("Failed to submit assignment data.");
         addToast({
           title: "Submission Failed",
           description: "There was an error submitting your assignment.",
@@ -329,7 +378,6 @@ export const CodingInterface = ({
           variant: "bordered",
         });
       } else {
-        console.error("Failed to save assignment data.");
         addToast({
           title: "Save Failed",
           description: "There was an error saving your assignment progress.",
@@ -339,17 +387,15 @@ export const CodingInterface = ({
           variant: "bordered",
         });
       }
+    } finally {
+      setIsSubmitting(false);
       setSaving(false);
+      if (isSubmit) {
+        onClose();
+      }
     }
-    if (isSubmit) {
-      onClose();
-    }
-    setSaving(false);
   };
 
-  React.useEffect(() => {
-    fetchDataForAssignment();
-  }, [fetchDataForAssignment, id]);
 
   const editorRef = React.useRef(null);
 
@@ -449,30 +495,6 @@ export const CodingInterface = ({
     };
   }, [handleMouseMove, handleMouseUp]);
 
-  // // track user refreshing or going back.
-  React.useEffect(() => {
-    const handleBeforeUnload = (event) => {
-      if (editorRef.current?.getValue() != assignmentData?.code_template) {
-        const updatedData = {
-          ...assignmentData,
-          code_template: editorRef.current?.getValue(),
-        };
-        console.log("Saving assignment data to session storage:", updatedData);
-
-        sessionStorage.setItem(`assignment-${id}`, JSON.stringify(updatedData));
-
-        event.preventDefault();
-        // Modern browsers show a generic message and ignore the custom one.
-        event.returnValue = "hello";
-      }
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
-  }, [id, assignmentData, editorRef]);
 
   const lowlight = createLowlight(all); // You can also use `common` or individual
   lowlight.register("javascript", js);
@@ -550,7 +572,9 @@ export const CodingInterface = ({
     // Use TipTap's utility to generate an HTML string from the JSON
     return generateHTML(jsonContent, extensions);
   };
-  const descriptionHtml = convertJsonToHtml(assignmentData?.description);
+  
+  const currentData = isPreview ? previewData : assignmentData;
+  const descriptionHtml = convertJsonToHtml(currentData?.description);
 
   const countdownRenderer = ({ days, hours, minutes, seconds, completed }) => {
     if (completed) {
@@ -584,7 +608,7 @@ export const CodingInterface = ({
           className="backdrop-blur-sm rounded-lg border border-white/10 shadow-2xl flex flex-col overflow-hidden bg-zinc-800/40"
           style={{ width: `${leftWidth}%` }}
         >
-          {isLoading ? (
+          {!(isPreview ? previewData : assignmentData) ? (
             <div className="flex items-center justify-center h-full">
               <Spinner color="secondary" />
             </div>
@@ -612,7 +636,7 @@ export const CodingInterface = ({
                     {/* Title and Difficulty */}
                     <div className="space-y-4">
                       <h1 className="text-3xl font-bold text-white">
-                        {assignmentData?.title || "Assignment Title"}
+                        {currentData?.title || "Assignment Title"}
                       </h1>
                       <div className="flex items-center gap-3"></div>
                     </div>
@@ -631,9 +655,9 @@ export const CodingInterface = ({
                   <div className="  w-full   max-h-full bg-transparent">
                     {realtimeSubmissionData?.grading_data ? (
                       <Results
-                        id={assignmentData?.id}
+                        id={currentData?.id}
                         editorRef={editorRef}
-                        rubric={assignmentData?.rubric}
+                        rubric={currentData?.rubric}
                         gradingData={realtimeSubmissionData?.grading_data}
                         role={role}
                       />
@@ -674,7 +698,7 @@ export const CodingInterface = ({
             {/* Code Editor Header */}
             <CardHeader className="flex items-center justify-between  py-2 px-6 border-b border-white/10 bg-black/20  h-14">
               <Select
-                defaultSelectedKeys={[`${assignmentData?.language || "java"}`]}
+                defaultSelectedKeys={[`${currentData?.language || "java"}`]}
                 onChange={(e) => setSelectedLanguage(e.target.value)}
                 className="bg-gray-800/60 text-white w-36 rounded-lg  "
                 size="sm"
@@ -735,7 +759,7 @@ export const CodingInterface = ({
 
             {/* Code Editor */}
 
-            {isLoading ? (
+            {!(isPreview ? previewData : assignmentData) ? (
               <div className="flex items-center justify-center h-full">
                 <Spinner />
               </div>
@@ -747,7 +771,7 @@ export const CodingInterface = ({
                   role="student"
                   // TODO : make this dynamic
                   disableMenu={true}
-                  starterCode={assignmentData?.code_template || ""}
+                  starterCode={currentData?.code_template || ""}
                   initialLockedLines={new Set([])}
                   isDisabled={timeUp}
                 />

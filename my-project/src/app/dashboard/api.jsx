@@ -205,3 +205,42 @@ export async function updateGrade(submissionsToUpdate, assignmentId) {
     };
   }
 }
+
+export async function generateJoinLink(classId) {
+  const supabase = await createClient();
+  
+  try {
+    // Verify user authentication
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    // Verify the teacher owns this classroom and get the join_id
+    const { data: classData, error: classError } = await supabase
+      .from("classes")
+      .select("id, name, join_id, teacher_id")
+      .eq("id", classId)
+      .eq("teacher_id", user.id)
+      .single();
+
+    if (classError || !classData) {
+      return { success: false, error: "Classroom not found or you don't have permission" };
+    }
+
+    // Generate the simple join URL using the existing join_id
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const joinUrl = `${baseUrl}/join/${classData.join_id}`;
+
+    return {
+      success: true,
+      join_url: joinUrl,
+      class_code: classData.join_id,
+      class_name: classData.name
+    };
+
+  } catch (error) {
+    console.error("Error in generateJoinLink:", error);
+    return { success: false, error: "Internal server error" };
+  }
+}

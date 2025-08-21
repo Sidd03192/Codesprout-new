@@ -712,6 +712,14 @@ export const Results = ({ editorRef, role, rubric, id, gradingData }) => {
   const [selected, setSelected] = useState(students[0] || null);
   const [changedSubmitionIds, setChangedSubmitionIds] = useState(new Set());
   console.log(gradingData);
+
+  // Update grading_data when gradingData prop changes (for real-time updates)
+  useEffect(() => {
+    if (gradingData && gradingData !== grading_data) {
+      setGrading_data(gradingData);
+      console.log('Real-time grading data updated in Results component:', gradingData);
+    }
+  }, [gradingData]);
   const handleStudentUpdate = (updatedStudent) => {
     // Update the master list of students
     setStudents((currentStudents) =>

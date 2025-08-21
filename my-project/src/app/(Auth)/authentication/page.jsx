@@ -2,7 +2,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "../../../../utils/supabase/client";
 const supabase = createClient();
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Button,
   Input,
@@ -18,6 +19,7 @@ import { Spinner } from "@heroui/react";
 import Image from "next/image";
 
 export default function AuthForm() {
+  const searchParams = useSearchParams();
   const [isSignUp, setIsSignUp] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const toggleVisibility = () => setIsVisible((v) => !v);
@@ -30,6 +32,31 @@ export default function AuthForm() {
   const [alertDescription, setAlertDescription] = useState("");
   const [alertVisible, setAlertVisible] = useState(false);
   const [role, setRole] = useState("student");
+  const [joinToken, setJoinToken] = useState(null);
+  const [joinContext, setJoinContext] = useState(null);
+
+  useEffect(() => {
+    const token = searchParams.get('join_token');
+    if (token) {
+      setJoinToken(token);
+      // Default to student role for join links
+      setRole("student");
+      // Validate token and get classroom info
+      validateJoinToken(token);
+    }
+  }, [searchParams]);
+
+  const validateJoinToken = async (token) => {
+    try {
+      const response = await fetch(`/api/classroom/join/${token}`);
+      if (response.ok) {
+        const data = await response.json();
+        setJoinContext(data);
+      }
+    } catch (error) {
+      console.error('Error validating join token:', error);
+    }
+  };
 
   const showAlert = (type, title, description) => {
     setAlertType(type);
@@ -78,6 +105,15 @@ export default function AuthForm() {
           // Only update database if user was created successfully
           if (data.user) {
             await updateDatabase(data.user);
+            
+            // Handle join token if present (after email verification)
+            if (joinToken) {
+              showAlert(
+                "success",
+                "Account Created Successfully!",
+                `Please verify your email, then you'll be automatically joined to ${joinContext?.class_name || 'the classroom'}.`
+              );
+            }
           }
         }
       } else {
@@ -96,11 +132,16 @@ export default function AuthForm() {
             signInError.message || "An error occurred during sign in."
           );
         } else {
-          // Successful sign in - redirect to appropriate dashboard
-          const userRole = await getUserRole(data.user.id);
-          const dashboardPath =
-            userRole === "teacher" ? "/dashboard" : "/student-dashboard";
-          redirect(dashboardPath);
+          // Successful sign in - handle join token if present
+          if (joinToken) {
+            await handleJoinTokenAfterAuth(data.user.id);
+          } else {
+            // Normal redirect to appropriate dashboard
+            const userRole = await getUserRole(data.user.id);
+            const dashboardPath =
+              userRole === "teacher" ? "/dashboard" : "/student-dashboard";
+            redirect(dashboardPath);
+          }
         }
       }
     } catch (err) {
@@ -138,6 +179,53 @@ export default function AuthForm() {
         "Error",
         "An unexpected error occurred during Google sign in."
       );
+    }
+  };
+
+  const handleJoinTokenAfterAuth = async (userId) => {
+    try {
+      const response = await fetch(`/api/classroom/join/${joinToken}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        showAlert(
+          "success",
+          "Successfully Joined Classroom!",
+          `Welcome to ${data.class_name}. Redirecting to your dashboard...`
+        );
+        
+        // Redirect to student dashboard after a brief delay
+        setTimeout(() => {
+          redirect('/student-dashboard');
+        }, 2000);
+      } else {
+        showAlert(
+          "warning", 
+          "Authentication Successful",
+          `Signed in successfully, but couldn't join classroom: ${data.error}. Redirecting to dashboard...`
+        );
+        
+        setTimeout(() => {
+          redirect('/student-dashboard');
+        }, 3000);
+      }
+    } catch (error) {
+      console.error('Error processing join token:', error);
+      showAlert(
+        "warning",
+        "Authentication Successful", 
+        "Signed in successfully, but couldn't join classroom. Redirecting to dashboard..."
+      );
+      
+      setTimeout(() => {
+        redirect('/student-dashboard');
+      }, 3000);
     }
   };
 
@@ -241,13 +329,26 @@ export default function AuthForm() {
             />
 
             <p className="text-xl font-medium">
-              {isSignUp ? "Create an Account" : "Welcome Back"}
+              {joinContext 
+                ? (isSignUp ? "Join Classroom" : "Join Classroom") 
+                : (isSignUp ? "Create an Account" : "Welcome Back")
+              }
             </p>
             <p className="text-small text-default-500">
-              {isSignUp
-                ? "Sign up to start your journey"
-                : "Log in to your account to continue"}
+              {joinContext 
+                ? `${isSignUp ? 'Create an account' : 'Sign in'} to join ${joinContext.class_name}`
+                : (isSignUp
+                  ? "Sign up to start your journey"
+                  : "Log in to your account to continue")
+              }
             </p>
+            {joinContext && (
+              <div className="mt-2 p-2 bg-primary-50 rounded-lg border border-primary-200">
+                <p className="text-xs text-primary-700 text-center">
+                  🎓 You've been invited to join <strong>{joinContext.class_name}</strong>
+                </p>
+              </div>
+            )}
           </div>
 
           <Form
@@ -318,7 +419,7 @@ export default function AuthForm() {
               )}
             </div>
 
-            {isSignUp && (
+            {isSignUp && !joinContext && (
               <div className="flex justify-center py-2">
                 <div className="flex items-center space-x-2 border rounded-full px-2 py-1 bg-gray-100">
                   <span

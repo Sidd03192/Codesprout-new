@@ -28,6 +28,7 @@ import { Icon } from "@iconify/react";
 import { BookOpenCheck } from "lucide-react";
 import { createClient } from "../../../../utils/supabase/client";
 import { BookMarked } from "lucide-react";
+import { generateJoinLink } from "../api";
 export const Classroom = ({ session, classes }) => {
   const [selectedClassroom, setSelectedClassroom] = React.useState(null);
   const [selectedTab, setSelectedTab] = React.useState("students");
@@ -37,6 +38,9 @@ export const Classroom = ({ session, classes }) => {
   const [dates, setDates] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [tostMessage, setTostMessage] = useState("");
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareLink, setShareLink] = useState("");
+  const [generatingShare, setGeneratingShare] = useState(false);
   const supabase = createClient();
   useEffect(() => {
     setDates([
@@ -257,6 +261,58 @@ export const Classroom = ({ session, classes }) => {
     }
   };
 
+  const generateShareLink = async (classId) => {
+    try {
+      setGeneratingShare(true);
+      
+      const result = await generateJoinLink(classId);
+
+      if (!result.success) {
+        addToast({
+          title: "Failed to Generate Link",
+          description: result.error || "An error occurred",
+          color: "danger",
+          duration: 5000,
+          placement: "top-center",
+        });
+        return;
+      }
+
+      setShareLink(result.join_url);
+      setShowShareModal(true);
+
+      // Copy to clipboard automatically
+      await copyToClipboard(result.join_url);
+
+    } catch (error) {
+      console.error("Error generating share link:", error);
+      addToast({
+        title: "Error",
+        description: "Failed to generate share link",
+        color: "danger",
+        duration: 5000,
+        placement: "top-center",
+      });
+    } finally {
+      setGeneratingShare(false);
+    }
+  };
+
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      addToast({
+        title: "Copied!",
+        description: "Link copied to clipboard",
+        color: "success",
+        duration: 2000,
+        placement: "top-center",
+      });
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
   const handleCreateClassroom = async () => {
     const name = classroomName;
     setIsLoading(true);
@@ -402,14 +458,26 @@ export const Classroom = ({ session, classes }) => {
                 <h3 className="text-xl font-semibold">
                   {selectedClassroom.name}
                 </h3>
-                <Button
-                  size="sm"
-                  variant="light"
-                  onPress={() => setSelectedClassroom(null)}
-                  startContent={<Icon icon="lucide:chevron-left" />}
-                >
-                  Back to All Classrooms
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    color="primary"
+                    variant="flat"
+                    onPress={() => generateShareLink(selectedClassroom.id)}
+                    isLoading={generatingShare}
+                    startContent={<Icon icon="lucide:share-2" />}
+                  >
+                    Share Class Code
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="light"
+                    onPress={() => setSelectedClassroom(null)}
+                    startContent={<Icon icon="lucide:chevron-left" />}
+                  >
+                    Back to All Classrooms
+                  </Button>
+                </div>
               </div>
               <Tabs
                 selectedKey={selectedTab}
@@ -676,6 +744,67 @@ export const Classroom = ({ session, classes }) => {
                   </div>
                 </Form>
               )}
+            </main>
+          </div>
+        </ModalContent>
+      </Modal>
+
+      {/* Share Class Code Modal */}
+      <Modal 
+        isOpen={showShareModal} 
+        onClose={() => setShowShareModal(false)} 
+        size="md" 
+        backdrop="blur"
+      >
+        <ModalContent className="w-full">
+          <ModalHeader className="flex border-zinc-800 bg-zinc-900">
+            <div className="flex items-center gap-3">
+              <Icon icon="lucide:share-2" className="text-2xl" color="white" />
+              <h1 className="text-xl font-semibold">Share Class Code</h1>
+            </div>
+          </ModalHeader>
+
+          <div className="bg-gradient-to-br from-[#1e2b22] via-[#1e1f2b] to-[#2b1e2e] text-zinc-100">
+            <main className="mx-auto w-full p-6 pb-8">
+              <div className="text-center space-y-4">
+                <div className="p-4 bg-zinc-800/40 rounded-lg">
+                  <p className="text-sm text-zinc-400 mb-2">Class Code</p>
+                  <div className="text-2xl font-bold text-primary mb-3">
+                    {selectedClassroom?.join_id || "Loading..."}
+                  </div>
+                  <p className="text-xs text-zinc-500">
+                    Students can join using this code
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <p className="text-sm text-zinc-400">Share Link</p>
+                  <Snippet 
+                    symbol=""
+                    className="w-full"
+                    codeString={shareLink}
+                    onCopy={() => copyToClipboard(shareLink)}
+                  >
+                    <span className="text-xs">{shareLink}</span>
+                  </Snippet>
+                </div>
+
+                <div className="flex gap-2 justify-center">
+                  <Button 
+                    color="primary"
+                    onPress={() => copyToClipboard(shareLink)}
+                    startContent={<Icon icon="lucide:copy" />}
+                  >
+                    Copy Link
+                  </Button>
+                  <Button 
+                    variant="light"
+                    onPress={() => setShowShareModal(false)}
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
             </main>
           </div>
         </ModalContent>
