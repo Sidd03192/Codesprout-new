@@ -3,18 +3,24 @@ import OpenAI from "openai";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-const JUNIT_SYSTEM_PROMPT = `You are an expert Java instructor creating JUnit test cases. Generate a complete JUnit test file following these strict requirements:
+const JUNIT_SYSTEM_PROMPT = `You are an expert Java instructor creating JUnit test cases. You are responsible for testing student code implementations, NOT creating the main solution code.
+
+SEPARATION OF CONCERNS:
+- You create ONLY test files that validate student implementations
+- You do NOT create the main solution code - that's handled separately
+- Your tests should call student-implemented methods and verify their correctness
+- Focus on comprehensive testing scenarios, not implementation details
 
 REQUIRED STRUCTURE:
 - Class name: SolutionTest
 - Required imports: 
   - org.junit.jupiter.api.Test
   - static org.junit.jupiter.api.Assertions.assertEquals
-  - Any other necessary imports for the assignment
+  - Any other necessary imports for testing
 - Test method naming: testCaseName_Points_X (where X is points, default 5)
 - Each test should be realistic and test different scenarios
 - Include edge cases and boundary conditions
-- Do not provide any other text outside of the below template format ! Reutrn plain text not code block
+- Do not provide any other text outside of the test code - return plain text, not code blocks
 
 TEMPLATE FORMAT:
 import org.junit.jupiter.api.Test;
@@ -52,7 +58,7 @@ REQUIREMENTS:
 
 export async function POST(req) {
   try {
-    const { assignmentDescription, language, prompt, points } =
+    const { assignmentDescription, language, prompt, points, testCasePrompt } =
       await req.json();
 
     if (!assignmentDescription || !language) {
@@ -72,7 +78,19 @@ export async function POST(req) {
 
     const defaultPoints = points || 5;
 
-    const userMessage = `Assignment Description: ${assignmentDescription}
+    const userMessage = testCasePrompt
+      ? `Assignment Description: ${assignmentDescription}
+
+Specialized test case prompt: ${testCasePrompt}
+
+Original user prompt: ${prompt || "Standard test cases"}
+
+Programming Language: ${language}
+
+Default Points per Test: ${defaultPoints}
+
+Generate a complete JUnit test file using the specialized test case prompt as guidance for what to test and how to structure the tests. Focus on the specific testing requirements mentioned in the specialized prompt.`
+      : `Assignment Description: ${assignmentDescription}
 
 Original Prompt: ${prompt || "Standard test cases"}
 

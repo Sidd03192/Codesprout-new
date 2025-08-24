@@ -8,7 +8,7 @@ import BackgroundEffects from "./background-effects";
 import Pricing from "./pricing";
 import BetaCard from "./cta";
 import Banner from "./banner";
-export const Landing = ({ session }) => {
+export const Landing = ({ session, userRole }) => {
   const [isAtTop, setIsAtTop] = useState(true);
   const scrollContainerRef = useRef(null);
   console.log(isAtTop);
@@ -44,7 +44,7 @@ export const Landing = ({ session }) => {
         <BackgroundEffects />
 
         {/* Need to check role*/}
-        <Navbar isAtTop={isAtTop} session={session} />
+        <Navbar isAtTop={isAtTop} session={session} userRole={userRole} />
         <main>
           <Hero />
           <Bento />

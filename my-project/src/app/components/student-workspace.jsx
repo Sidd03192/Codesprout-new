@@ -71,6 +71,7 @@ export const CodingInterface = ({
   submissionData,
   assignmentData,
   onSaveAssignment,
+  rubric,
 }) => {
   const supabase = createClient();
   const [activeTab, setActiveTab] = useState("Description");
@@ -86,7 +87,8 @@ export const CodingInterface = ({
   const [saving, setSaving] = useState(false);
   const [initialCode, setInitialCode] = useState("");
   const [timeUp, setTimeUp] = useState(false);
-  const [realtimeSubmissionData, setRealtimeSubmissionData] = useState(submissionData);
+  const [realtimeSubmissionData, setRealtimeSubmissionData] =
+    useState(submissionData);
 
   useEffect(() => {
     const currentData = isPreview ? previewData : assignmentData;
@@ -107,57 +109,65 @@ export const CodingInterface = ({
         const {
           data: { user },
         } = await supabase.auth.getUser();
-        
+
         if (!user) {
-          console.log('No authenticated user found for real-time subscription');
+          console.log("No authenticated user found for real-time subscription");
           return;
         }
 
-        console.log('Setting up real-time subscription for assignment:', id, 'user:', user.id);
+        console.log(
+          "Setting up real-time subscription for assignment:",
+          id,
+          "user:",
+          user.id
+        );
 
         const channel = supabase
           .channel(`assignment-${id}-student-${user.id}`)
           .on(
-            'postgres_changes',
+            "postgres_changes",
             {
-              event: 'UPDATE',
-              schema: 'public',
-              table: 'assignment_students',
+              event: "UPDATE",
+              schema: "public",
+              table: "assignment_students",
               filter: `student_id=eq.${user.id} AND assignment_id=eq.${id}`,
             },
             (payload) => {
-              console.log('Real-time grading update received:', payload);
+              console.log("Real-time grading update received:", payload);
               if (payload.new?.grading_data) {
-                setRealtimeSubmissionData(prev => ({
+                setRealtimeSubmissionData((prev) => ({
                   ...prev,
                   grading_data: payload.new.grading_data,
                   status: payload.new.status,
-                  last_updated: new Date().toISOString()
+                  last_updated: new Date().toISOString(),
                 }));
                 // Auto-switch to results tab when grading is complete
-                if (payload.new.status === 'submitted' && payload.new.grading_data) {
-                  setActiveTab('results');
+                if (
+                  payload.new.status === "submitted" &&
+                  payload.new.grading_data
+                ) {
+                  setActiveTab("results");
                 }
               }
             }
           )
           .subscribe((status) => {
-            console.log('Subscription status:', status);
-            if (status === 'SUBSCRIBED') {
-              console.log('Successfully subscribed to real-time updates');
-            } else if (status === 'CLOSED') {
-              console.log('Real-time subscription closed');
-            } else if (status === 'CHANNEL_ERROR') {
-              console.error('Real-time subscription error');
+            console.log("Subscription status:", status);
+            if (status === "SUBSCRIBED") {
+              console.log("Successfully subscribed to real-time updates");
+            } else if (status === "CLOSED") {
+              console.log("Real-time subscription closed");
+            } else if (status === "CHANNEL_ERROR") {
+              console.error("Real-time subscription error");
             }
           });
 
         cleanup = () => {
-          console.log('Cleaning up real-time subscription');
+          console.log("Cleaning up real-time subscription");
           supabase.removeChannel(channel);
         };
       } catch (error) {
-        console.error('Error setting up real-time subscription:', error);
+        console.error("Error setting up real-time subscription:", error);
       }
     };
 
@@ -173,16 +183,19 @@ export const CodingInterface = ({
   // Initialize component with passed data
   useEffect(() => {
     const dataToUse = isPreview ? previewData : assignmentData;
-    
+
     if (!dataToUse) {
-      console.log(isPreview ? "No preview data provided" : "No assignment data provided");
+      console.log(
+        isPreview ? "No preview data provided" : "No assignment data provided"
+      );
       return;
     }
 
     // Set initial code from submission or template
-    const codeToUse = submissionData?.submitted_code || dataToUse.code_template || "";
+    const codeToUse =
+      submissionData?.submitted_code || dataToUse.code_template || "";
     setInitialCode(codeToUse);
-    
+
     // Check if assignment is past due (only for non-preview mode)
     if (!isPreview && dataToUse.due_at) {
       const due_time = new Date(dataToUse.due_at).getTime();
@@ -191,38 +204,42 @@ export const CodingInterface = ({
         setActiveTab("results");
       }
     }
-    
+
     // Set default tab based on submission status
-    if (submissionData?.status === 'submitted') {
+    if (submissionData?.status === "submitted") {
       setActiveTab("results");
     }
-    
-    console.log(isPreview ? "Preview data initialized" : "Assignment data initialized from props");
+
+    console.log(
+      isPreview
+        ? "Preview data initialized"
+        : "Assignment data initialized from props"
+    );
   }, [assignmentData, submissionData, isPreview, previewData]);
 
   // Auto-save functionality
   useEffect(() => {
     if (isPreview || role === "teacher" || !id || !assignmentData) return;
-    if (typeof window === 'undefined') return; // Browser check
+    if (typeof window === "undefined") return; // Browser check
 
     const autoSaveKey = `autosave_${id}`;
 
     // Function to auto-save code
     const autoSaveCode = () => {
-      if (!editorRef.current || typeof window === 'undefined') return;
-      
+      if (!editorRef.current || typeof window === "undefined") return;
+
       const currentCode = editorRef.current.getValue();
       if (currentCode && currentCode !== initialCode) {
         try {
           const autoSaveData = {
             code: currentCode,
             timestamp: Date.now(),
-            assignmentId: id
+            assignmentId: id,
           };
           localStorage.setItem(autoSaveKey, JSON.stringify(autoSaveData));
-          console.log('Auto-saved code for assignment:', id);
+          console.log("Auto-saved code for assignment:", id);
         } catch (error) {
-          console.error('Auto-save failed:', error);
+          console.error("Auto-save failed:", error);
         }
       }
     };
@@ -232,13 +249,13 @@ export const CodingInterface = ({
 
     // Check for existing auto-saved code on mount
     const checkAutoSavedCode = () => {
-      if (typeof window === 'undefined') return;
-      
+      if (typeof window === "undefined") return;
+
       try {
         const saved = localStorage.getItem(autoSaveKey);
         if (saved) {
           const { code, timestamp } = JSON.parse(saved);
-          
+
           // Check if auto-save is recent (within 24 hours)
           const maxAge = 24 * 60 * 60 * 1000; // 24 hours
           if (Date.now() - timestamp < maxAge && code !== initialCode) {
@@ -246,10 +263,10 @@ export const CodingInterface = ({
             const shouldRestore = window.confirm(
               "We found unsaved changes from your previous session. Would you like to restore them?"
             );
-            
+
             if (shouldRestore && editorRef.current) {
               editorRef.current.setValue(code);
-              console.log('Restored auto-saved code');
+              console.log("Restored auto-saved code");
             }
           } else {
             // Remove old auto-save data
@@ -257,7 +274,7 @@ export const CodingInterface = ({
           }
         }
       } catch (error) {
-        console.error('Error checking auto-saved code:', error);
+        console.error("Error checking auto-saved code:", error);
       }
     };
 
@@ -268,7 +285,7 @@ export const CodingInterface = ({
     return () => {
       clearInterval(autoSaveInterval);
       clearTimeout(checkTimeout);
-      
+
       // Auto-save on unmount
       autoSaveCode();
     };
@@ -315,7 +332,7 @@ export const CodingInterface = ({
       console.warn("Preview mode, skipping save/submit.");
       return;
     }
-    
+
     if (!onSaveAssignment) {
       console.error("No save handler provided");
       return;
@@ -336,8 +353,9 @@ export const CodingInterface = ({
       setSaving(true);
     }
 
-    const student_code = editorRef?.current?.getValue() || currentData?.code_template || "";
-    
+    const student_code =
+      editorRef?.current?.getValue() || currentData?.code_template || "";
+
     try {
       const data = await onSaveAssignment(student_code, submit);
       if (data === "success") {
@@ -364,7 +382,9 @@ export const CodingInterface = ({
           });
         }
       } else {
-        throw new Error(submit ? "Failed to submit assignment" : "Failed to save assignment");
+        throw new Error(
+          submit ? "Failed to submit assignment" : "Failed to save assignment"
+        );
       }
     } catch (error) {
       console.error("Save/submit error:", error);
@@ -395,7 +415,6 @@ export const CodingInterface = ({
       }
     }
   };
-
 
   const editorRef = React.useRef(null);
 
@@ -495,7 +514,6 @@ export const CodingInterface = ({
     };
   }, [handleMouseMove, handleMouseUp]);
 
-
   const lowlight = createLowlight(all); // You can also use `common` or individual
   lowlight.register("javascript", js);
   const extensions = [
@@ -564,15 +582,26 @@ export const CodingInterface = ({
       types: ["textStyle"],
     }),
   ];
-  const convertJsonToHtml = (jsonContent) => {
-    if (!jsonContent) {
+  const convertJsonToHtml = (content) => {
+    if (!content) {
       return "";
     }
 
-    // Use TipTap's utility to generate an HTML string from the JSON
-    return generateHTML(jsonContent, extensions);
+    // If it's already a string (HTML), return as-is
+    if (typeof content === 'string') {
+      return content;
+    }
+
+    // If it's a JSON object, convert using TipTap's generateHTML
+    try {
+      return generateHTML(content, extensions);
+    } catch (error) {
+      console.error('Error converting JSON to HTML:', error);
+      // Fallback to empty string or the content as string if conversion fails
+      return typeof content === 'object' ? "" : String(content);
+    }
   };
-  
+
   const currentData = isPreview ? previewData : assignmentData;
   const descriptionHtml = convertJsonToHtml(currentData?.description);
 
@@ -653,24 +682,34 @@ export const CodingInterface = ({
               {activeTab === "results" && (
                 <div className="w-full h-full flex  max-h-full ">
                   <div className="  w-full   max-h-full bg-transparent">
-                    {realtimeSubmissionData?.grading_data ? (
+                    {role === "teacher" && (
                       <Results
                         id={currentData?.id}
                         editorRef={editorRef}
-                        rubric={currentData?.rubric}
-                        gradingData={realtimeSubmissionData?.grading_data}
+                        rubric={rubric}
                         role={role}
                       />
-                    ) : (
-                      <div className="flex flex-col gap-5 justify-center items-center h-full">
-                        <Bubbles size={200} className="text-gray-400" />
-                        <p className="text-gray-400">
-                          {realtimeSubmissionData?.status === 'submitted' ? 
-                            'Your assignment is being graded... Please wait.' : 
-                            'Relaxxx.... No grades or results available yet.'}
-                        </p>
-                      </div>
                     )}
+
+                    {role === "student" &&
+                      (realtimeSubmissionData?.grading_data ? (
+                        <Results
+                          id={currentData?.id}
+                          editorRef={editorRef}
+                          rubric={currentData?.rubric}
+                          gradingData={realtimeSubmissionData?.grading_data}
+                          role={role}
+                        />
+                      ) : (
+                        <div className="flex flex-col gap-5 justify-center items-center h-full">
+                          <Bubbles size={200} className="text-gray-400" />
+                          <p className="text-gray-400">
+                            {realtimeSubmissionData?.status === "submitted"
+                              ? "Your assignment is being graded... Please wait."
+                              : "Relaxxx.... No grades or results available yet."}
+                          </p>
+                        </div>
+                      ))}
                   </div>
                 </div>
               )}
@@ -824,7 +863,7 @@ export const CodingInterface = ({
                   size="md"
                   radius="sm"
                   onPress={() => saveAssignmentData(false)}
-                  isDisabled={isSubmitting || saving || timeUp}
+                  isDisabled={isSubmitting || saving || timeUp || isPreview}
                   startContent={
                     saving ? (
                       <Spinner size="sm" color="default" />
@@ -837,7 +876,7 @@ export const CodingInterface = ({
                 </Button>
                 <Button
                   onPress={onOpen}
-                  isDisabled={isSubmitting || timeUp}
+                  isDisabled={isSubmitting || timeUp || isPreview}
                   size="md"
                   radius="sm"
                   startContent={
@@ -893,7 +932,7 @@ export const CodingInterface = ({
                         <Button
                           color="success"
                           onPress={() => saveAssignmentData(true)}
-                          isDisabled={isSubmitting || timeUp}
+                          isDisabled={isSubmitting || timeUp || isPreview}
                         >
                           {isSubmitting ? <Spinner size="sm" /> : "Yes, Submit"}
                         </Button>

@@ -12,6 +12,8 @@ import {
   Modal,
   ModalContent,
   ModalHeader,
+  ModalBody,
+  ModalFooter,
 } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { Code, CircleX } from "lucide-react";
@@ -34,6 +36,7 @@ export const Assignments = ({ session, classes, initialAssignments }) => {
   const [assignmentToDelete, setAssignmentToDelete] = useState(null);
   const [viewMode, setViewMode] = useState("list");
   const [selectedClassroom, setSelectedClassroom] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const channel = supabase
@@ -112,6 +115,37 @@ export const Assignments = ({ session, classes, initialAssignments }) => {
   const getClassroomName = (classId) => {
     const classroom = classes?.find((c) => c.id === classId);
     return classroom ? classroom.name : `Class ${classId}`;
+  };
+
+  const handleDeleteAssignment = async () => {
+    if (!assignmentToDelete) return;
+    
+    setDeleting(true);
+    try {
+      const { error } = await supabase
+        .from("assignments")
+        .delete()
+        .eq("id", assignmentToDelete.id)
+        .eq("teacher_id", session?.user?.id);
+
+      if (error) {
+        console.error("Error deleting assignment:", error);
+        alert("Failed to delete assignment");
+        return;
+      }
+
+      setAssignments((prev) => 
+        prev.filter((assignment) => assignment.id !== assignmentToDelete.id)
+      );
+      
+      setDeleteModalOpen(false);
+      setAssignmentToDelete(null);
+    } catch (error) {
+      console.error("Error deleting assignment:", error);
+      alert("Failed to delete assignment");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const renderAssignmentCard = (assignment) => {
@@ -407,6 +441,45 @@ export const Assignments = ({ session, classes, initialAssignments }) => {
                 setOpen={setEditModalOpen}
                 isEdit={true}
               />
+            </ModalContent>
+          </Modal>
+
+          {/* Delete Assignment Modal */}
+          <Modal
+            isOpen={deleteModalOpen}
+            onClose={() => setDeleteModalOpen(false)}
+            size="sm"
+          >
+            <ModalContent>
+              <ModalHeader className="flex flex-col gap-1">
+                <h2 className="text-lg font-semibold text-danger">Delete Assignment</h2>
+              </ModalHeader>
+              <ModalBody>
+                <p>
+                  Are you sure you want to delete "{assignmentToDelete?.title}"?
+                </p>
+                <p className="text-sm text-foreground-500">
+                  This action cannot be undone and will permanently delete the assignment and all its data.
+                </p>
+              </ModalBody>
+              <ModalFooter>
+                <Button
+                  variant="light"
+                  onPress={() => setDeleteModalOpen(false)}
+                  disabled={deleting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  color="danger"
+                  variant="solid"
+                  onPress={handleDeleteAssignment}
+                  isLoading={deleting}
+                  disabled={deleting}
+                >
+                  Delete
+                </Button>
+              </ModalFooter>
             </ModalContent>
           </Modal>
         </CardHeader>

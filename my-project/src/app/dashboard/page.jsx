@@ -22,11 +22,8 @@ import { Overview } from "./pages/overview";
 import { Assignments } from "./pages/assignments";
 import { Gradebook } from "./pages/gradebook";
 import { Classroom } from "./pages/classroom";
-import AccessDenied from "../components/AccessDenied";
 
 export default function Dashboard() {
-  const [userType, setUserType] = React.useState("teacher"); // "teacher" or "student"
-
   // update user data if new user
   const [session, setSession] = useState(null);
   const [classes, setClasses] = useState([]);
@@ -51,38 +48,9 @@ export default function Dashboard() {
       authListener.subscription.unsubscribe();
     };
   }, []);
-  useEffect(() => {
-    if (!session?.user?.id) return;
 
-    (async () => {
-      console.log("session.user.id", session.user.id);
-      const type = await getUserType(session.user.id);
-      setUserType(type);
-    })();
-  }, [session?.user]);
-  const getUserType = async (userId) => {
-    const supabase = createClient();
-    console.log("userId", userId);
-    try {
-      const { data, error } = await supabase
-        .from("users")
-        .select("role")
-        .eq("id", userId)
-        .single(); // <-- Add .single() here
+  // Role checking is now handled by middleware - no need for client-side checks
 
-      console.log("data", data);
-      if (error) {
-        console.error("Error fetching user role:", error.message);
-        return "student"; // Default role on error
-      }
-
-      // Now 'data' is an object like { role: '...' }, so data.role will work
-      return data?.role || "student";
-    } catch (err) {
-      console.error("Unexpected error fetching user role:", err.message);
-      return "student";
-    }
-  };
   const signOut = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
@@ -128,7 +96,7 @@ export default function Dashboard() {
       .on(
         "postgres_changes", // Listen to database changes
         {
-          event: "*", // Listen to all events (INSERT, UPDATE, DELETE)
+          event: "*",
           schema: "public",
           table: "classes",
           // Filter to only get changes for the current teacher's classes
@@ -200,31 +168,30 @@ export default function Dashboard() {
       setIsSidebarCollapsed(!isSidebarCollapsed);
     }
   };
-  console.log("user Type", userType);
-  if (userType == "student") {
-    return <AccessDenied userRole={userType} />;
-  }
+
+  // Middleware ensures only teachers can access this page
+
   // Render the active page component
   const renderActivePage = () => {
-      switch (activePage) {
-        case "overview":
-          return <Overview />;
-        case "assignments":
-          return (
-            <Assignments
-              session={session}
-              classes={classes}
-              initialAssignments={assignments}
-            />
-          );
-        case "gradebook":
-          return <Gradebook />;
-        case "classroom":
-          return <Classroom session={session} classes={classes} />;
-        default:
-          return <Overview />;
-      }
-  }
+    switch (activePage) {
+      case "overview":
+        return <Overview />;
+      case "assignments":
+        return (
+          <Assignments
+            session={session}
+            classes={classes}
+            initialAssignments={assignments}
+          />
+        );
+      case "gradebook":
+        return <Gradebook />;
+      case "classroom":
+        return <Classroom session={session} classes={classes} />;
+      default:
+        return <Overview />;
+    }
+  };
 
   // Handle page change
   const handlePageChange = (page) => {
@@ -296,7 +263,7 @@ export default function Dashboard() {
 
       <div className="flex flex-1 flex-col overflow-hidden w-full">
         {/* Header */}
-        <header className="flex h-12 items-center  border-b  bg-slate-950 justify-between  border-divider px-1">
+        <header className="flex h-12 items-center  border-b  bg-zinc-900/50 justify-between  border-divider px-1">
           <div className="flex ">
             <Button
               isIconOnly
@@ -349,4 +316,4 @@ export default function Dashboard() {
       </div>
     </div>
   );
-};
+}

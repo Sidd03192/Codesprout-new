@@ -49,7 +49,7 @@ export const Sidebar = ({ isCollapsed, activePage, setActivePage }) => {
   ];
 
   return (
-    <div className="bg-slate-950 flex h-full flex-col overflow-y-hidden border-b ">
+    <div className=" flex h-full flex-col overflow-y-hidden border-b ">
       {/* Logo */}
       <div
         className={`mb-4  px-2 ${

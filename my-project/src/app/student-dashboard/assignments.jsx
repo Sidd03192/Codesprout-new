@@ -30,6 +30,7 @@ import {
   DropdownItem,
 } from "@heroui/react";
 import { AssignmentCard } from "./components/assignment-card";
+
 export const StudentAssignments = ({
   session,
   assignments,
@@ -44,7 +45,6 @@ export const StudentAssignments = ({
   const [completedAssignments, setCompletedAssignments] = useState([]);
   const [upcomingAssignments, setUpcomingAssignments] = useState([]);
   const [selected, setSelected] = useState("upcoming");
-  const [showClasroom, setShowClasroom] = useState(false);
 
   const updateAssignments = (assignments) => {
     const completed = assignments.filter(
@@ -74,8 +74,6 @@ export const StudentAssignments = ({
   const filteredAssignments = (
     selected === "upcoming" ? upcomingAssignments : completedAssignments
   ).filter((assignment) => {
-    // add filter functionaity TODO
-
     if (
       searchValue &&
       !assignment.title.toLowerCase().includes(searchValue.toLowerCase())
@@ -83,23 +81,10 @@ export const StudentAssignments = ({
       return false;
     return true;
   });
-  const isAssignmentDone = (id, date) => Date.now() > new Date(date).getTime();
 
   const handleRefreshClick = () => {
     console.log("Refreshing assignments...");
     handleRefresh();
-  };
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case "high":
-        return "danger";
-      case "medium":
-        return "warning";
-      case "low":
-        return "success";
-      default:
-        return "default";
-    }
   };
 
   const getDueDate = (dueDate) => {
@@ -115,25 +100,6 @@ export const StudentAssignments = ({
       hour12: true,
     });
   };
-
-  // group assignments by class_name
-  const groupedAssignments = useMemo(() => {
-    const assignments =
-      (selected === "upcoming" ? upcomingAssignments : completedAssignments) ||
-      [];
-    if (!assignments) return {};
-    return assignments.reduce((acc, assignment) => {
-      const groupKey = assignment.class_name || "Uncategorized"; /// TODO make sure this becomes by class_id
-
-      if (!acc[groupKey]) {
-        acc[groupKey] = [];
-      }
-
-      acc[groupKey].push(assignment);
-
-      return acc;
-    }, {});
-  }, [selected, upcomingAssignments, completedAssignments]);
 
   const isOverDue = (dueDate) => {
     const date = new Date(dueDate);
@@ -152,19 +118,6 @@ export const StudentAssignments = ({
             <Button
               color="secondary"
               variant="flat"
-              onPress={() => setShowClasroom(!showClasroom)}
-            >
-              {showClasroom ? (
-                <Icon icon="lucide:shapes" />
-              ) : (
-                <Icon icon="lucide:list" />
-              )}
-              {showClasroom ? "Classroom View" : "All Assignments"}
-            </Button>
-
-            <Button
-              color="secondary"
-              variant="flat"
               isIconOnly
               onClick={handleRefreshClick}
             >
@@ -179,7 +132,6 @@ export const StudentAssignments = ({
               startContent={<Icon icon="lucide:search" />}
               value={searchValue}
               onValueChange={setSearchValue}
-              isDisabled={showClasroom === true}
               className="w-full sm:max-w-xs"
             />
             <Tabs
@@ -203,40 +155,7 @@ export const StudentAssignments = ({
               </div>
             ) : (
               <div className="space-y-2">
-                {showClasroom &&
-                  Object.keys(groupedAssignments).map((className) => (
-                    <div
-                      key={className}
-                      className="space-y-2  border-divider p-1 rounded-lg  mb-3 "
-                    >
-                      <Chip
-                        variant="flat"
-                        color="primary"
-                        className="text-lg  font-bold "
-                      >
-                        {className}
-                      </Chip>
-
-                      {groupedAssignments[className].map((assignment) => (
-                        <div className="mb-3" key={assignment.id}>
-                          <AssignmentCard
-                            assignment={assignment}
-                            key={assignment.id}
-                            getDueDate={getDueDate}
-                            OnOpenChange={onOpenChange}
-                            isOpen={isOpen}
-                            onOpen={onOpen}
-                            setIsLoading={setIsLoading}
-                            isAssignmentDone={isAssignmentDone}
-                            isOverDue={isOverDue}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-
-                {!showClasroom &&
-                  filteredAssignments &&
+                {filteredAssignments &&
                   filteredAssignments.length > 0 &&
                   filteredAssignments.map((assignment) => (
                     <AssignmentCard
@@ -250,15 +169,22 @@ export const StudentAssignments = ({
                     />
                   ))}
 
-                {!assignments && (
+                {/* Empty state for all assignments view */}
+                {filteredAssignments.length === 0 && (
                   <div className="text-center py-8">
                     <Icon
-                      icon="lucide:file-check"
+                      icon="lucide:clipboard-list"
                       className="mx-auto text-4xl text-foreground-400 mb-2"
                     />
-                    <p className="text-foreground-500">No assignments found</p>
+                    <p className="text-foreground-500">
+                      {searchValue
+                        ? "No assignments match your search"
+                        : `No ${selected} assignments found`}
+                    </p>
                     <p className="text-sm text-foreground-400">
-                      Please try again by clickin the refresh button above.
+                      {searchValue
+                        ? "Try adjusting your search terms"
+                        : "Your assignments will appear here when they're available"}
                     </p>
                   </div>
                 )}

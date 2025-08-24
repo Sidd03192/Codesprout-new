@@ -113,6 +113,24 @@ export default function AuthForm() {
                 "Account Created Successfully!",
                 `Please verify your email, then you'll be automatically joined to ${joinContext?.class_name || 'the classroom'}.`
               );
+            } else if (!data.user.email_confirmed_at) {
+              // User needs to verify email before redirect
+              showAlert(
+                "success",
+                "Account Created Successfully!",
+                "Please check your email and verify your account to complete registration."
+              );
+            } else {
+              // Email already confirmed, redirect immediately
+              const dashboardPath = role === "teacher" ? "/dashboard" : "/student-dashboard";
+              showAlert(
+                "success", 
+                "Account Created Successfully!",
+                `Welcome! Redirecting to your ${role} dashboard...`
+              );
+              setTimeout(() => {
+                redirect(dashboardPath);
+              }, 2000);
             }
           }
         }
@@ -232,7 +250,7 @@ export default function AuthForm() {
   const getUserRole = async (userId) => {
     try {
       const { data, error } = await supabase
-        .from("users")
+        .from("profiles")
         .select("role")
         .eq("id", userId)
         .single();

@@ -79,6 +79,7 @@ export const Testcase = ({ testcases, setTestcases }) => {
             const zip = await jszip.loadAsync(file);
             const contents = [];
             for (const filename in zip.files) {
+              console.log("File Name", filename);
               if (!zip.files[filename].dir) {
                 // We only care about files, not directories
                 const fileInZip = zip.files[filename];

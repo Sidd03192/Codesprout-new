@@ -79,6 +79,7 @@ export default async function AssignmentPage({ params }) {
       user={authenticatedUser}
       id={id}
       data={assignmentData}
+      assignmentData={assignmentData}
       rubric={rubricData}
     />
   );

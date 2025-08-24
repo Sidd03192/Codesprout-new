@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
-import { Button } from "@heroui/react";
+import { Button, user } from "@heroui/react";
 import "./landing.css";
-export const Navbar = ({ isAtTop, session }) => {
+export const Navbar = ({ isAtTop, session, userRole }) => {
   return (
     <header className="fixed top-0 inset-x-0 z-50">
       <div className="container mx-auto px-6">
@@ -36,7 +36,12 @@ export const Navbar = ({ isAtTop, session }) => {
 
             <Button className="glass rounded-lg transition-transform hover:scale-105 ">
               {session?.user ? (
-                <a href="/dashboard" aria-label="Request a demo">
+                <a
+                  href={
+                    userRole === "teacher" ? "/dashboard" : "/student-dashboard"
+                  }
+                  aria-label="Request a demo"
+                >
                   Dashboard
                 </a>
               ) : (

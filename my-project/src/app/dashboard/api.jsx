@@ -109,7 +109,7 @@ export async function fetchStudentsForAssignment(assignmentId) {
     .select("*")
     .eq("assignment_id", assignmentId);
 
-  console.log("Students fetched:" + data);
+  console.log("Students fetched:" + data + "error:" + error);
   if (error) {
     console.error("Error fetching assignment students:", error);
     return [];
@@ -206,12 +206,84 @@ export async function updateGrade(submissionsToUpdate, assignmentId) {
   }
 }
 
-export async function generateJoinLink(classId) {
+export async function getEnrolledStudents(classId) {
   const supabase = await createClient();
-  
+
+  try {
+    // Fetch enrolled students for the classroom
+    const { data: students, error } = await supabase
+      .from("enrollments")
+      .select("student_id, full_name, email, enrolled_at")
+      .eq("class_id", classId);
+
+    if (error) {
+      console.error("Error fetching enrolled students:", error);
+      return { success: false, error: "Failed to fetch students" };
+    }
+
+    return { success: true, students };
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    return { success: false, error: "Internal server error" };
+  }
+}
+
+export async function removeStudentFromClassroom(classId, studentId) {
+  const supabase = await createClient();
+
   try {
     // Verify user authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    // Verify the teacher owns this classroom
+    const { data: classData, error: classError } = await supabase
+      .from("classes")
+      .select("id, teacher_id")
+      .eq("id", classId)
+      .eq("teacher_id", user.id)
+      .single();
+
+    if (classError || !classData) {
+      return {
+        success: false,
+        error: "Classroom not found or you don't have permission",
+      };
+    }
+
+    // Delete the enrollment
+    const { error: deleteError } = await supabase
+      .from("enrollments")
+      .delete()
+      .eq("class_id", classId)
+      .eq("student_id", studentId);
+
+    if (deleteError) {
+      console.error("Error removing student from classroom:", deleteError);
+      return { success: false, error: "Failed to remove student" };
+    }
+
+    return { success: true, message: "Student removed successfully" };
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    return { success: false, error: "Internal server error" };
+  }
+}
+
+export async function generateJoinLink(classId) {
+  const supabase = await createClient();
+
+  try {
+    // Verify user authentication
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
       return { success: false, error: "Unauthorized" };
     }
@@ -225,20 +297,22 @@ export async function generateJoinLink(classId) {
       .single();
 
     if (classError || !classData) {
-      return { success: false, error: "Classroom not found or you don't have permission" };
+      return {
+        success: false,
+        error: "Classroom not found or you don't have permission",
+      };
     }
 
     // Generate the simple join URL using the existing join_id
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     const joinUrl = `${baseUrl}/join/${classData.join_id}`;
 
     return {
       success: true,
       join_url: joinUrl,
       class_code: classData.join_id,
-      class_name: classData.name
+      class_name: classData.name,
     };
-
   } catch (error) {
     console.error("Error in generateJoinLink:", error);
     return { success: false, error: "Internal server error" };

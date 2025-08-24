@@ -1,15 +1,15 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { 
-  Card, 
-  CardBody, 
-  CardHeader, 
-  Button, 
-  Spinner, 
+import {
+  Card,
+  CardBody,
+  CardHeader,
+  Button,
+  Spinner,
   Alert,
-  Chip
+  Chip,
 } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { createClient } from "../../../../utils/supabase/client";
@@ -17,8 +17,11 @@ import { createClient } from "../../../../utils/supabase/client";
 export default function JoinClassroomPage({ params }) {
   const router = useRouter();
   const supabase = createClient();
-  const { token: joinCode } = params;
-  
+
+  // Unwrap the params Promise using React.use()
+  const unwrappedParams = use(params);
+  const { token: joinCode } = unwrappedParams;
+
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
   const [classData, setClassData] = useState(null);
@@ -32,27 +35,30 @@ export default function JoinClassroomPage({ params }) {
   const validateCodeAndUser = async () => {
     try {
       setLoading(true);
-      
-      // Check authentication status
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
+
+      // Run auth check and classroom lookup in parallel
+      const [userResult, classroomResult] = await Promise.all([
+        supabase.auth.getUser(),
+        supabase
+          .from("classes")
+          .select("id, name, teacher_id")
+          .eq("join_id", parseInt(joinCode))
+          .single(),
+      ]);
+
+      const currentUser = userResult.data.user;
       setUser(currentUser);
 
-      // Validate join code by looking up the classroom
-      const { data: classroom, error: classError } = await supabase
-        .from("classes")
-        .select("id, name, teacher_id")
-        .eq("join_id", parseInt(joinCode))
-        .single();
-
-      if (classError || !classroom) {
+      if (classroomResult.error || !classroomResult.data) {
         setError("Invalid class code");
         setLoading(false);
         return;
       }
 
+      const classroom = classroomResult.data;
       setClassData(classroom);
 
-      // If user is authenticated, check if already enrolled
+      // If user is authenticated, check enrollment in a single query
       if (currentUser) {
         const { data: existingEnrollment } = await supabase
           .from("enrollments")
@@ -62,12 +68,10 @@ export default function JoinClassroomPage({ params }) {
           .maybeSingle();
 
         if (existingEnrollment) {
-          // Already enrolled, redirect to student dashboard
           router.push("/student-dashboard");
           return;
         }
       }
-
     } catch (err) {
       console.error("Error validating join code:", err);
       setError("Failed to validate join code");
@@ -100,7 +104,7 @@ export default function JoinClassroomPage({ params }) {
           class_id: classData.id,
           enrolled_at: new Date().toISOString(),
           full_name: user.user_metadata?.full_name || "Student",
-          email: userData.email
+          email: userData.email,
         });
 
       if (enrollmentError) {
@@ -111,7 +115,6 @@ export default function JoinClassroomPage({ params }) {
 
       // Success - redirect to student dashboard
       router.push("/student-dashboard");
-
     } catch (err) {
       console.error("Error joining classroom:", err);
       setError("Failed to join classroom");
@@ -122,7 +125,9 @@ export default function JoinClassroomPage({ params }) {
 
   const handleSignUp = () => {
     // Redirect to authentication with join context
-    router.push(`/authentication?join_code=${joinCode}&redirect_after_auth=true`);
+    router.push(
+      `/authentication?join_code=${joinCode}&redirect_after_auth=true`
+    );
   };
 
   if (loading) {
@@ -147,17 +152,22 @@ export default function JoinClassroomPage({ params }) {
           <CardHeader className="text-center">
             <div className="flex flex-col items-center gap-2">
               <div className="p-3 bg-danger-100 rounded-full">
-                <Icon icon="lucide:alert-circle" className="text-2xl text-danger" />
+                <Icon
+                  icon="lucide:alert-circle"
+                  className="text-2xl text-danger"
+                />
               </div>
-              <h1 className="text-xl font-semibold text-danger">Join Link Error</h1>
+              <h1 className="text-xl font-semibold text-danger">
+                Join Link Error
+              </h1>
             </div>
           </CardHeader>
           <CardBody className="text-center space-y-4">
             <Alert color="danger" variant="flat">
               {error}
             </Alert>
-            <Button 
-              color="primary" 
+            <Button
+              color="primary"
               variant="flat"
               onPress={() => router.push("/")}
             >
@@ -172,10 +182,10 @@ export default function JoinClassroomPage({ params }) {
   if (!user) {
     // User is not authenticated - show signup/signin options
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100 p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="flex flex-col items-center gap-3">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1e2b22] via-[#1e1f2b] to-[#2b1e2e] p-4">
+        <Card className="w-full max-w-md bg-zinc-900/20 border border-zinc-800">
+          <CardHeader className="text-center items-center flex justify-center">
+            <div className="flex flex-col items-center justify-center gap-3">
               <div className="p-3 bg-success-100 rounded-full">
                 <Icon icon="lucide:users" className="text-2xl text-success" />
               </div>
@@ -194,10 +204,10 @@ export default function JoinClassroomPage({ params }) {
                 Sign up or sign in to join this classroom
               </p>
             </div>
-            
+
             <div className="space-y-3">
-              <Button 
-                color="primary" 
+              <Button
+                color="primary"
                 className="w-full"
                 size="lg"
                 onPress={handleSignUp}
@@ -205,9 +215,9 @@ export default function JoinClassroomPage({ params }) {
               >
                 Create Account & Join
               </Button>
-              
-              <Button 
-                color="primary" 
+
+              <Button
+                color="primary"
                 variant="bordered"
                 className="w-full"
                 size="lg"
@@ -231,14 +241,14 @@ export default function JoinClassroomPage({ params }) {
 
   // User is authenticated and joining
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1e2b22] via-[#1e1f2b] to-[#2b1e2e] p-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex flex-col items-center gap-3">
-            <div className="p-3 bg-primary-100 rounded-full">
-              <Icon icon="lucide:users" className="text-2xl text-primary" />
+        <CardHeader className="text-center items-center flex justify-center">
+          <div className="flex flex-col items-center justify-center gap-3">
+            <div className="p-3 bg-success-100 rounded-full">
+              <Icon icon="lucide:users" className="text-2xl text-success" />
             </div>
-            <h1 className="text-xl font-semibold">Joining Classroom</h1>
+            <h1 className="text-xl font-semibold">Join Classroom</h1>
             <Chip color="primary" variant="flat">
               {classData?.name}
             </Chip>
@@ -257,8 +267,8 @@ export default function JoinClassroomPage({ params }) {
               <p className="text-foreground-600">
                 You're about to join <strong>{classData?.name}</strong>
               </p>
-              <Button 
-                color="primary" 
+              <Button
+                color="primary"
                 size="lg"
                 className="w-full"
                 onPress={handleJoinClassroom}

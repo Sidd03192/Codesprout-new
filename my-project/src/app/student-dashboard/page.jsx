@@ -31,8 +31,7 @@ export default function StudentDashboard() {
   // Add active page state
   const [activePage, setActivePage] = React.useState("overview");
 
-  // Add user type state (teacher or student)
-  const [userType, setUserType] = React.useState("student"); // "teacher" or "student"
+  // Role checking is now handled by middleware
 
   // Mock session for demo purposes
   const [session, setSession] = React.useState(null); // null = logged out, object = logged in
@@ -52,6 +51,8 @@ export default function StudentDashboard() {
   useEffect(() => {
     insertUserIfNew("student");
   }, []);
+
+  // Role checking is now handled by middleware - no need for client-side checks
 
   const handleRefresh = () => {
     console.log("Refreshing assignments...");
@@ -139,6 +140,7 @@ export default function StudentDashboard() {
 
   // Render the active page component based on user type
   const renderActivePage = () => {
+    console.log("Rendering active page:", activePage);
     switch (activePage) {
       case "overview":
         return <StudentOverview />;
@@ -157,6 +159,7 @@ export default function StudentDashboard() {
       case "grades":
         return <StudentGrades />;
       case "courses":
+        console.log("Rendering courses page, session:", !!session?.user);
         return session?.user ? (
           <StudentCourses user_id={session.user.id} />
         ) : (
@@ -201,6 +204,8 @@ export default function StudentDashboard() {
     setActivePage("overview");
   };
 
+  // Middleware ensures only students can access this page
+
   return (
     <div className="flex flex-col h-screen w-full bg-gradient-to-br from-[#1e2b22] via-[#1e1f2b] to-[#2b1e2e]">
       {/* Add navbar at the top */}
@@ -216,7 +221,7 @@ export default function StudentDashboard() {
               isCollapsed={isSidebarCollapsed}
               activePage={activePage}
               setActivePage={handlePageChange}
-              userType={userType}
+              userType="student"
             />
           </div>
         )}
@@ -232,17 +237,12 @@ export default function StudentDashboard() {
                       <div className="flex items-center gap-2">
                         <div className="rounded-full bg-content3 p-1">
                           <Icon
-                            icon={
-                              userType === "teacher"
-                                ? "lucide:book-open"
-                                : "lucide:graduation-cap"
-                            }
+                            icon="lucide:graduation-cap"
                             className="text-foreground"
                           />
                         </div>
                         <span className="font-semibold">
-                          {userType === "teacher" ? "Teacher" : "Student"}{" "}
-                          Dashboard
+                          Student Dashboard
                         </span>
                       </div>
                       <Button isIconOnly variant="light" onPress={onClose}>
@@ -258,7 +258,7 @@ export default function StudentDashboard() {
                         handlePageChange(page);
                         onClose();
                       }}
-                      userType={userType}
+                      userType="student"
                     />
                   </DrawerBody>
                 </>
@@ -287,15 +287,7 @@ export default function StudentDashboard() {
             <div className="flex items-center gap-2">
               <Icon
                 icon={
-                  userType === "teacher"
-                    ? activePage === "overview"
-                      ? "lucide:layout-dashboard"
-                      : activePage === "assignments"
-                      ? "lucide:file-text"
-                      : activePage === "gradebook"
-                      ? "lucide:bar-chart-2"
-                      : "lucide:users"
-                    : activePage === "overview"
+                  activePage === "overview"
                     ? "lucide:layout-dashboard"
                     : activePage === "assignments"
                     ? "lucide:file-text"

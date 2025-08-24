@@ -51,14 +51,19 @@ Keep responses under 2000 tokens while maintaining clarity.`;
 
 export async function POST(req) {
   try {
-    const { prompt, followUp } = await req.json();
+    const { prompt, followUp, descriptionPrompt } = await req.json();
 
     if (!prompt) {
       return NextResponse.json({ error: "Missing prompt" }, { status: 400 });
     }
 
+    // Use specialized prompt from the coordination API if available
+    const basePrompt = descriptionPrompt || prompt;
+
     const userMessage = followUp
-      ? `Current content: ${prompt}\n\nModification request: ${followUp}\n\nPlease modify the content according to the request while preserving the structure and format.`
+      ? `Current content: ${basePrompt}\n\nModification request: ${followUp}\n\nPlease modify the content according to the request while preserving the structure and format.`
+      : descriptionPrompt
+      ? `Specialized description prompt: ${descriptionPrompt}\n\nOriginal user input: ${prompt}\n\nPlease create an enhanced problem description using the specialized prompt as guidance.`
       : `Original description: ${prompt}\n\nPlease enhance this according to the system instructions.`;
 
     const stream = await openai.chat.completions.create({

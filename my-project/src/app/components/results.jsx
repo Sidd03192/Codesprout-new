@@ -60,52 +60,6 @@ const CodeBlock = ({ content, language = "text", className = "" }) => {
   );
 };
 
-// const FeedbackPanel = ({ feedback, code }) => {
-//   const [activeTab, setActiveTab] = useState("feedback");
-
-//   return (
-//     <div className="lg:col-span-2 bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700 overflow-hidden">
-//       <div className="flex border-b border-slate-700">
-//         <button
-//           onClick={() => setActiveTab("feedback")}
-//           className={`flex-1 p-4 font-semibold text-center border-b-2 transition-colors ${
-//             activeTab === "feedback"
-//               ? "border-emerald-500 text-emerald-400"
-//               : "border-transparent text-slate-400 hover:text-white"
-//           }`}
-//         >
-//           Feedback
-//         </button>
-//       </div>
-//       <div className="p-6">
-//         {activeTab === "feedback" && (
-//           <div>
-//             <div className="flex items-start gap-4">
-//               <Avatar />
-//               <div className="flex-1">
-//                 <p className="font-semibold">{"Mr watson"}</p>
-//                 <div className="mt-2 bg-slate-700/50 p-4 rounded-lg">
-//                   <p>{feedback}</p>
-//                 </div>
-//               </div>
-//             </div>
-//             <div className="mt-6">
-//               <textarea
-//                 className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 focus:ring-2 focus:ring-emerald-500 focus:outline-none transition"
-//                 rows="3"
-//                 placeholder="Provide feedback..."
-//               ></textarea>
-//               <button className="mt-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-semibold transition-colors">
-//                 Submit Feedback
-//               </button>
-//             </div>
-//           </div>
-//         )}
-//       </div>
-//     </div>
-//   );
-// };
-
 const ScoreCard = ({ score, total, date }) => {
   const percentage = score / total;
   const percentageText = Math.round(percentage * 100);
@@ -219,13 +173,14 @@ const AccordionSection = ({ title, items, onPointsChange, viewMode }) => {
               title={
                 <div className="flex items-center justify-between w-full">
                   <div className="flex items-center gap-3">
-                    {item.status === "passed" && (
-                      <Icon
-                        icon="lucide-check"
-                        color="green"
-                        className="text-xl"
-                      />
-                    )}
+                    {item.status === "passed" ||
+                      (item.passed && (
+                        <Icon
+                          icon="lucide-check"
+                          color="green"
+                          className="text-xl"
+                        />
+                      ))}
                     {item.status === "failed" && (
                       <Icon icon="lucide-x" color="red" className="text-xl" />
                     )}
@@ -257,7 +212,8 @@ const AccordionSection = ({ title, items, onPointsChange, viewMode }) => {
                       </div>
                     ) : (
                       <span className="text-sm font-semibold">
-                        {item.pointsAchieved} / {item.maxPoints} pts
+                        {item.points || item.pointsAchieved} / {item.maxPoints}{" "}
+                        pts
                       </span>
                     )}
                   </div>
@@ -298,6 +254,12 @@ const GradingResults = ({
 }) => {
   grading_data = viewMode === "teacher" ? student?.grading_data : grading_data;
 
+  if (!grading_data)
+    return (
+      <div className="h-full w-full text-center mt-4">
+        No Student have submitted this assignment.
+      </div>
+    );
   const [feedback, setFeedback] = useState("");
   const [overallOverrideScore, setOverallOverrideScore] = useState("");
   const [testResults, setTestResults] = useState([]);
@@ -475,7 +437,7 @@ const GradingResults = ({
     <div className="font-sans mx-auto">
       {viewMode == "student" && (
         <ScoreCard
-          score={finalScore}
+          score={110}
           total={maxTotalPoints}
           date={new Date(grading_data?.gradedAt).toLocaleString()}
         />
@@ -625,7 +587,7 @@ const StudentScrollSection = ({ students, selected, setSelected }) => {
   // This function scrolls the container left or right
   const getColor = (status) => {
     if (status == null) {
-      return "danger";
+      return "default";
     }
     switch (
       status // need to hook this up based on the student_assignments table
@@ -673,7 +635,6 @@ const StudentScrollSection = ({ students, selected, setSelected }) => {
               {students?.map((student, index) => (
                 <Button
                   onPress={() => setSelected(student)}
-                  variant={selected?.name === student.name ? "solid" : "ghost"}
                   color={getColor(student.status)}
                   key={index}
                   className="flex-shrink-0 border-2 rounded-full"
@@ -712,12 +673,15 @@ export const Results = ({ editorRef, role, rubric, id, gradingData }) => {
   const [selected, setSelected] = useState(students[0] || null);
   const [changedSubmitionIds, setChangedSubmitionIds] = useState(new Set());
   console.log(gradingData);
-
+  console.log("students", rubric?.students);
   // Update grading_data when gradingData prop changes (for real-time updates)
   useEffect(() => {
     if (gradingData && gradingData !== grading_data) {
       setGrading_data(gradingData);
-      console.log('Real-time grading data updated in Results component:', gradingData);
+      console.log(
+        "Real-time grading data updated in Results component:",
+        gradingData
+      );
     }
   }, [gradingData]);
   const handleStudentUpdate = (updatedStudent) => {
@@ -730,30 +694,6 @@ export const Results = ({ editorRef, role, rubric, id, gradingData }) => {
     // Also update the currently selected student to ensure the UI is in sync
     setSelected(updatedStudent);
   };
-
-  //]
-  // // edit testcases based on rubric
-  // useEffect(() => {
-  //   if (rubricData?.testCaseCriteria) {
-  //     const newTestResults = grading_data.testResults.map((test) => {
-  //       const matchingRubricItem =
-  //         rubricData.testCaseCriteria.find((item) => item.name === test.name) ||
-  //         {};
-  //       const maxPoints = matchingRubricItem.maxPoints || 0;
-
-  //       return {
-  //         ...test,
-  //         maxPoints: maxPoints,
-  //         pointsAchieved:
-  //           test.status == "passed" ? maxPoints : test.pointsAchieved,
-  //       };
-  //     });
-  //     setGrading_data((prevGradingData) => ({
-  //       ...prevGradingData,
-  //       testResults: newTestResults,
-  //     }));
-  //   }
-  // }, [rubricData]);
 
   const [currentView, setCurrentView] = useState("grading");
   const { isOpen, onOpen, onOpenChange } = useDisclosure();

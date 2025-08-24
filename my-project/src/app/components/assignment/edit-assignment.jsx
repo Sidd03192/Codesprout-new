@@ -58,7 +58,7 @@ export default function EditAssignmentPage({
 
     selectedStudentIds: [],
     codeTemplate:
-      "// Write your code template here\nfunction example() {\n  // This line can be locked\n  console.log('Hello world');\n}\n",
+      "// Write your code template here\nfunction example() {\n  // This line can be locked\n  \n",
     dueDate: null,
     startDate: null,
     lockedLines: [],
@@ -128,7 +128,7 @@ export default function EditAssignmentPage({
       }));
 
       setSelectedLanguage(data.language || "java");
-
+      console.log("code", formData.codeTemplate);
       if (Array.isArray(data.test_cases)) {
         setTestcases(data.test_cases);
       }
@@ -612,8 +612,12 @@ export default function EditAssignmentPage({
                   height={"600px"}
                   language={selectedLanguage || "java"}
                   editorRef={editorRef}
+                  initialValue={formData.codeTemplate}
                   role="teacher"
-                  starterCode={"// this file will be visible to students."}
+                  starterCode={
+                    formData.codeTemplate ||
+                    "// this file will be visible to students."
+                  }
                   handleHiddenLinesChange={handleHiddenLinesChange}
                   handleLockedLinesChange={handleLockedLinesChange}
                 />

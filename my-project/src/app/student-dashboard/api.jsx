@@ -22,7 +22,7 @@ export async function getAssignmentsData(student_id) {
     .from("assignment_students")
     .select("*")
     .eq("student_id", student_id)
-    .lte("start_date", "now()")
+    .gte("start_date", "now()")
     .order("start_date", { ascending: false });
 
   console.log("Visisble assignments:", visibleAssignments);
@@ -76,13 +76,13 @@ export const getAssignmentDetails = async (assignment_id) => {
 export const joinClassroomByToken = async (token, userId) => {
   console.log("Joining classroom by token:", token);
   const supabase = await createClient();
-  
+
   try {
     // Call the API to handle token-based joining
     const response = await fetch(`/api/classroom/join/${token}`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     });
 
@@ -93,11 +93,11 @@ export const joinClassroomByToken = async (token, userId) => {
       return { success: false, error: data.error };
     }
 
-    return { 
-      success: true, 
+    return {
+      success: true,
       class_id: data.class_id,
       class_name: data.class_name,
-      already_enrolled: data.already_enrolled
+      already_enrolled: data.already_enrolled,
     };
   } catch (error) {
     console.error("Error joining by token:", error);
@@ -132,23 +132,35 @@ export const joinClassroom = async (joinCode, userId) => {
     console.log("User already joined this course");
     return null; // check if this makes sense
   }
-  /*const { data: emailData, error: emailError } = await supabase
-    .from("users")
-    .select("email")
-    .eq("id", userId)
-    .maybeSingle();
-  if (emailError) {
-    console.error("Error fetching email:", emailError.message);
+
+  // Fetch user data from users table or auth.users table
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError) {
+    console.error("Error fetching user:", userError.message);
     return null;
   }
-  const email = emailData.email;*/
+
+  // Get additional user info from users table if it exists
+  const { data: userProfile, error: profileError } = await supabase
+    .from("users")
+    .select("name, email")
+    .eq("id", userId)
+    .maybeSingle();
+
+  // Use profile data if available, otherwise fall back to auth user data
+  const userName =
+    userProfile?.name ||
+    userData.user?.user_metadata?.full_name ||
+    userData.user?.user_metadata?.name ||
+    "Student";
+  const userEmail = userProfile?.email || userData.user?.email || "";
 
   const { error: insertError } = await supabase.from("enrollments").insert({
     student_id: userId,
     enrolled_at: new Date(),
     class_id: course.id,
-    full_name: "john doe",
-    email: "johndoe@gmail.com",
+    full_name: userName,
+    email: userEmail,
   });
 
   if (insertError) {
@@ -481,4 +493,144 @@ export const fetchStudentData = async (assignment_id) => {
   console.log(data, "dataaaaaaaaaaaaaaaaaaaaaaaa");
 
   return data;
+};
+
+export const leaveClassroom = async (classId, userId) => {
+  const supabase = await createClient();
+
+  try {
+    // Delete the enrollment record
+    const { error } = await supabase
+      .from("enrollments")
+      .delete()
+      .eq("student_id", userId)
+      .eq("class_id", classId);
+
+    if (error) {
+      console.error("Error leaving classroom:", error.message);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error leaving classroom:", error);
+    return { success: false, error: "Failed to leave classroom" };
+  }
+};
+
+export const getCourseDetails = async (courseId, studentId) => {
+  const supabase = await createClient();
+
+  try {
+    // Fetch all course data in parallel for maximum speed
+    const [
+      courseResult,
+      assignmentsResult,
+      announcementsResult,
+      documentsResult,
+    ] = await Promise.all([
+      // Get course basic info
+      supabase.from("classes").select("*").eq("id", courseId).single(),
+
+      // Get assignments with grades for this student
+      supabase
+        .from("assignment_students")
+        .select(
+          `
+          *,
+          assignments!inner(
+            id, title, description, due_at, created_at, 
+            language, points_possible, status
+          )
+        `
+        )
+        .eq("student_id", studentId)
+        .eq("assignments.class_id", courseId)
+        .order("assignments.due_at", { ascending: false }),
+
+      // Get course announcements (mock data for now since table might not exist)
+      Promise.resolve([
+        {
+          id: 1,
+          title: "Welcome to the Course",
+          content: "Welcome everyone! Looking forward to a great semester.",
+          created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+          priority: "normal",
+          author: "Instructor",
+        },
+        {
+          id: 2,
+          title: "Assignment Due Date Reminder",
+          content:
+            "Don't forget about the upcoming assignment deadline this Friday.",
+          created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
+          priority: "high",
+          author: "Instructor",
+        },
+      ]),
+
+      // Get course documents (mock data for now since table might not exist)
+      Promise.resolve([
+        {
+          id: 1,
+          name: "Course Syllabus",
+          type: "PDF",
+          size: "2.3 MB",
+          uploaded_at: new Date(Date.now() - 86400000 * 30).toISOString(),
+          download_url: "#",
+        },
+        {
+          id: 2,
+          name: "Lecture Slides - Week 1",
+          type: "PPTX",
+          size: "5.7 MB",
+          uploaded_at: new Date(Date.now() - 86400000 * 25).toISOString(),
+          download_url: "#",
+        },
+        {
+          id: 3,
+          name: "Reading List",
+          type: "DOCX",
+          size: "1.2 MB",
+          uploaded_at: new Date(Date.now() - 86400000 * 28).toISOString(),
+          download_url: "#",
+        },
+      ]),
+    ]);
+
+    if (courseResult.error) {
+      console.error("Error fetching course:", courseResult.error);
+      return { success: false, error: "Failed to fetch course details" };
+    }
+
+    if (assignmentsResult.error) {
+      console.error("Error fetching assignments:", assignmentsResult.error);
+    }
+
+    // Calculate course progress based on completed assignments
+    const assignments = assignmentsResult.data || [];
+    const completedAssignments = assignments.filter(
+      (a) => a.submitted_at
+    ).length;
+    const progress =
+      assignments.length > 0
+        ? Math.round((completedAssignments / assignments.length) * 100)
+        : 0;
+
+    return {
+      success: true,
+      data: {
+        course: {
+          ...courseResult.data,
+          progress,
+        },
+        assignments: assignments,
+        announcements: announcementsResult || [],
+        documents: documentsResult || [],
+      },
+    };
+  } catch (error) {
+    console.error("Error fetching course details:", error);
+    return { success: false, error: "Failed to fetch course details" };
+  }
 };
