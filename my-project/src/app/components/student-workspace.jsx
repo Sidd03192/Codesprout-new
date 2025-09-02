@@ -109,31 +109,25 @@ export const CodingInterface = ({
         const {
           data: { user },
         } = await supabase.auth.getUser();
-
         if (!user) {
           console.log("No authenticated user found for real-time subscription");
           return;
         }
-
-        console.log(
-          "Setting up real-time subscription for assignment:",
-          id,
-          "user:",
-          user.id
-        );
-
         const channel = supabase
-          .channel(`assignment-${id}-student-${user.id}`)
+          .channel(`assignment_students`)
           .on(
             "postgres_changes",
             {
               event: "UPDATE",
               schema: "public",
               table: "assignment_students",
-              filter: `student_id=eq.${user.id} AND assignment_id=eq.${id}`,
+              filter: `student_id=eq.${user.id}`,
             },
             (payload) => {
               console.log("Real-time grading update received:", payload);
+              // Filter by assignment_id since we can't use AND in real-time filters
+              if (payload.new?.assignment_id !== id) return;
+
               if (payload.new?.grading_data) {
                 setRealtimeSubmissionData((prev) => ({
                   ...prev,
@@ -151,14 +145,19 @@ export const CodingInterface = ({
               }
             }
           )
-          .subscribe((status) => {
+          .subscribe((status, err) => {
             console.log("Subscription status:", status);
             if (status === "SUBSCRIBED") {
               console.log("Successfully subscribed to real-time updates");
             } else if (status === "CLOSED") {
               console.log("Real-time subscription closed");
             } else if (status === "CHANNEL_ERROR") {
-              console.error("Real-time subscription error");
+              console.error("Real-time subscription error:", err);
+              // Retry connection after a delay
+              setTimeout(() => {
+                console.log("Retrying real-time subscription...");
+                setupRealtimeSubscription();
+              }, 5000);
             }
           });
 
@@ -328,6 +327,7 @@ export const CodingInterface = ({
   };
 
   const saveAssignmentData = async (isSubmit) => {
+    console.log("Saving assignment data...");
     if (isPreview || role == "teacher") {
       console.warn("Preview mode, skipping save/submit.");
       return;
@@ -339,6 +339,7 @@ export const CodingInterface = ({
     }
 
     const submit = isSubmit || false;
+    console.log("Saving assignment data... submit:", submit);
     const currentData = isPreview ? previewData : assignmentData;
     const due_time = new Date(currentData?.due_at).getTime();
     if (Date.now() - 60 * 300 > due_time || !currentData) {
@@ -588,7 +589,7 @@ export const CodingInterface = ({
     }
 
     // If it's already a string (HTML), return as-is
-    if (typeof content === 'string') {
+    if (typeof content === "string") {
       return content;
     }
 
@@ -596,9 +597,9 @@ export const CodingInterface = ({
     try {
       return generateHTML(content, extensions);
     } catch (error) {
-      console.error('Error converting JSON to HTML:', error);
+      console.error("Error converting JSON to HTML:", error);
       // Fallback to empty string or the content as string if conversion fails
-      return typeof content === 'object' ? "" : String(content);
+      return typeof content === "object" ? "" : String(content);
     }
   };
 
@@ -692,7 +693,7 @@ export const CodingInterface = ({
                     )}
 
                     {role === "student" &&
-                      (realtimeSubmissionData?.grading_data ? (
+                      (submissionData?.grading_data ? (
                         <Results
                           id={currentData?.id}
                           editorRef={editorRef}
@@ -704,7 +705,7 @@ export const CodingInterface = ({
                         <div className="flex flex-col gap-5 justify-center items-center h-full">
                           <Bubbles size={200} className="text-gray-400" />
                           <p className="text-gray-400">
-                            {realtimeSubmissionData?.status === "submitted"
+                            {submissionData?.status === "submitted"
                               ? "Your assignment is being graded... Please wait."
                               : "Relaxxx.... No grades or results available yet."}
                           </p>

@@ -473,7 +473,9 @@ const structureTestingData = (
 
 export const fetchStudentData = async (assignment_id) => {
   const supabase = await createClient();
+  console.log("Fetching student data for assignment:", assignment_id);
   const {
+    // get some extra validation for security lmao
     data: { user },
     error: userError,
   } = await supabase.auth.getUser();
@@ -486,6 +488,7 @@ export const fetchStudentData = async (assignment_id) => {
     .eq("assignment_id", assignment_id)
     .single();
 
+  console.log("found submission data", data, error);
   if (error) {
     console.error("Error fetching grading data:", error.message);
     return null;

@@ -21,7 +21,7 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error('Assignment page error:', error, errorInfo);
+    console.error("Assignment page error:", error, errorInfo);
   }
 
   render() {
@@ -29,9 +29,11 @@ class ErrorBoundary extends React.Component {
       return (
         <div className="h-screen w-full bg-gradient-to-br from-[#1e2b22] via-[#1e1f2b] to-[#2b1e2e] flex items-center justify-center">
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-red-400 mb-4">Something went wrong</h2>
+            <h2 className="text-2xl font-bold text-red-400 mb-4">
+              Something went wrong
+            </h2>
             <p className="text-white/70 mb-6">Failed to load assignment page</p>
-            <button 
+            <button
               onClick={() => this.setState({ hasError: false, error: null })}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
@@ -71,13 +73,13 @@ function AssignmentPage({ params }) {
   useEffect(() => {
     const resolveParams = async () => {
       try {
-        console.log('Resolving params:', params);
+        console.log("Resolving params:", params);
         const resolvedParams = await params;
-        console.log('Resolved params:', resolvedParams);
+        console.log("Resolved params:", resolvedParams);
         setAssignmentId(resolvedParams.id);
       } catch (error) {
-        console.error('Error resolving params:', error);
-        setError('Failed to resolve assignment ID');
+        console.error("Error resolving params:", error);
+        setError("Failed to resolve assignment ID");
         setLoading(false);
       }
     };
@@ -88,21 +90,16 @@ function AssignmentPage({ params }) {
   const getCachedData = useCallback((id) => {
     // Check if we're in the browser
     if (typeof window === "undefined") return null;
-
     try {
       const cacheKey = getCacheKey(id);
       const cached = sessionStorage.getItem(cacheKey);
-
       if (!cached) return null;
-
       const { data, timestamp } = JSON.parse(cached);
-
       // Check if cache is expired
       if (Date.now() - timestamp > CACHE_DURATION) {
         sessionStorage.removeItem(cacheKey);
         return null;
       }
-
       return data;
     } catch (error) {
       console.error("Error reading cache:", error);
@@ -113,7 +110,10 @@ function AssignmentPage({ params }) {
   // Cache data with timestamp (browser-safe)
   const setCachedData = useCallback((id, data) => {
     // Check if we're in the browser
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined") {
+      console.warn("Not in the browser");
+      return;
+    }
 
     try {
       const cacheKey = getCacheKey(id);
@@ -130,7 +130,10 @@ function AssignmentPage({ params }) {
   // Fetch assignment data with caching
   const fetchAssignmentData = useCallback(
     async (id) => {
-      if (!id) return;
+      if (!id) {
+        console.error("Assignment ID not provided");
+        return;
+      }
 
       try {
         setLoading(true);
@@ -140,13 +143,14 @@ function AssignmentPage({ params }) {
         const cachedData = getCachedData(id);
         if (cachedData) {
           console.log("Loading from cache");
+          console.log(cachedData);
           setAssignmentData(cachedData.assignmentData);
           setSubmissionData(cachedData.submissionData);
           setLoading(false);
           return;
         }
 
-        console.log("Fetching fresh data for assignment:", id);
+        console.log("Getting fresh data for assignment:", id);
 
         // Fetch both assignment and submission data in parallel
         const [assignmentDetails, studentSubmission] = await Promise.all([
@@ -156,6 +160,10 @@ function AssignmentPage({ params }) {
 
         if (!assignmentDetails) {
           throw new Error("Assignment not found");
+        }
+
+        if (!studentSubmission) {
+          throw new Error("Submission not found");
         }
 
         // Basic validation
@@ -245,17 +253,17 @@ function AssignmentPage({ params }) {
     [assignmentId, assignmentData, submissionData, setCachedData]
   );
 
-  // Loading state
-  if (loading) {
-    return (
-      <div className="h-screen w-full bg-gradient-to-br from-[#1e2b22] via-[#1e1f2b] to-[#2b1e2e] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Spinner size="lg" color="secondary" />
-          <p className="text-white/70">Loading assignment...</p>
-        </div>
-      </div>
-    );
-  }
+  // // Loading state
+  // if (loading) {
+  //   return (
+  //     <div className="h-screen w-full bg-gradient-to-br from-[#1e2b22] via-[#1e1f2b] to-[#2b1e2e] flex items-center justify-center">
+  //       <div className="flex flex-col items-center gap-4">
+  //         <Spinner size="lg" color="secondary" />
+  //         <p className="text-white/70">Loading assignment...</p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   // Error state
   if (error) {
@@ -263,9 +271,11 @@ function AssignmentPage({ params }) {
       <div className="h-screen w-full bg-gradient-to-br from-[#1e2b22] via-[#1e1f2b] to-[#2b1e2e] flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-red-400 mb-4">
-            Error Loading Assignment
+            Error Loading Assignment.
           </h2>
-          <p className="text-white/70 mb-6">{error}</p>
+          <p className="text-white/70 mb-6">
+            {error} please report this error.
+          </p>
           <button
             onClick={() => fetchAssignmentData(assignmentId)}
             className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
