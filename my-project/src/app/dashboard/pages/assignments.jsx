@@ -13,8 +13,10 @@ import CreateAssignmentPage from "../../components/assignment/create-assignment"
 import EditAssignmentPage from "../../components/assignment/edit-assignment";
 import Link from "next/link";
 import { createClient } from "../../../../utils/supabase/client";
-const supabase = createClient();
+import { Chip } from "@/components/ui/chip";
+
 export const Assignments = ({ session, classes, initialAssignments }) => {
+  const supabase = createClient();
   const [assignments, setAssignments] = useState(initialAssignments || []);
   const [selected, setSelected] = useState("all");
   const [searchValue, setSearchValue] = useState("");

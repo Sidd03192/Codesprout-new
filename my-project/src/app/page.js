@@ -134,7 +134,8 @@ export default function Home() {
       clearTimeout(loadingTimeout);
       subscription.unsubscribe();
     };
-  }, []); // Remove supabase dependency to prevent recreating
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Intentionally omit dependencies to run only once on mount
 
   console.log("🖼️ Render state:", { isLoading, hasSession: !!session, userRole, error });
 

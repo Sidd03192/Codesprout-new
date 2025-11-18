@@ -29,6 +29,7 @@ export default function StudentDashboard() {
 
   // Mock session for demo purposes
   const [session, setSession] = React.useState(null); // null = logged out, object = logged in
+  const [userType, setUserType] = React.useState("student");
 
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(

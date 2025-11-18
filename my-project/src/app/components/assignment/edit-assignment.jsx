@@ -1,7 +1,6 @@
 // ... existing imports ...
 import { useRouter } from "next/navigation";
 import { createClient } from "../../../../utils/supabase/client";
-const supabase = createClient();
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -11,6 +10,8 @@ import { Select, SelectItem } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
+import { Chip } from "@/components/ui/chip";
+import { toast } from "sonner";
 import React, { useEffect, useCallback, useRef } from "react";
 import {
   Code,
@@ -36,6 +37,7 @@ export default function EditAssignmentPage({
   classes,
   setOpen,
 }) {
+  const supabase = createClient();
   const [formData, setFormData] = React.useState({
     classId: "",
     className: "",
