@@ -1,21 +1,11 @@
 "use client";
 import React, { use } from "react";
 
-import {
-  Card,
-  CardBody,
-  Chip,
-  Spinner,
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Button,
-  Input,
-  Link,
-  ModalTrigger,
-} from "@heroui/react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Spinner } from "@/components/ui/spinner";
+import { Dialog, DialogContent, DialogHeader, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Icon } from "@iconify/react";
 import { Calendar, GraduationCap } from "lucide-react";
 export const AssignmentCard = ({
@@ -42,7 +32,7 @@ export const AssignmentCard = ({
       key={assignment.id}
       className="border border-divider border-1 border-l-4  border-l-purple-400 hover:bg-purple-400/10 transition ease-in duration-300"
     >
-      <CardBody>
+      <CardContent>
         <div className="flex flex-col sm:flex-row justify-between gap-4">
           <div className="">
             <div className="flex items-center gap-2">
@@ -85,7 +75,7 @@ export const AssignmentCard = ({
               radius="sm"
               size="sm"
               variant="flat"
-              onPress={() => {
+              onClick={() => {
                 setSelectedAssignment(assignment.assignment_id);
                 onOpen();
               }}
@@ -101,23 +91,23 @@ export const AssignmentCard = ({
                 ? "View Assignment"
                 : "Start Assignment"}
             </Button>
-            <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
-              <ModalContent>
+            <Dialog open={isOpen} onOpenChange={onOpenChange}>
+              <DialogContent>
                 {(onClose) => (
                   <>
-                    <ModalHeader className="flex flex-col gap-1">
+                    <DialogHeader className="flex flex-col gap-1">
                       Submit Assignment
-                    </ModalHeader>
-                    <ModalBody>
+                    </DialogHeader>
+                    <DialogDescription>
                       <Card className="border-spacing-3 border-large border-yellow-400 p-5 bg-zinc-850">
                         <p className="text-yellow-500 ">
                           Are you sure you want to start this assignment? Once
                           you start, you cannot go back.
                         </p>
                       </Card>
-                    </ModalBody>
-                    <ModalFooter>
-                      <Button color="danger" variant="light" onPress={onClose}>
+                    </DialogDescription>
+                    <DialogFooter>
+                      <Button color="danger" variant="light" onClick={onClose}>
                         Close
                       </Button>
 
@@ -127,7 +117,7 @@ export const AssignmentCard = ({
                         color="secondary"
                         variant="flat"
                         className="min-w-[120px]"
-                        onPress={() =>
+                        onClick={() =>
                           console.log(
                             "Starting assignment",
                             assignment.assignment_id
@@ -148,14 +138,14 @@ export const AssignmentCard = ({
                           ? "View Assignment"
                           : "Start Assignment"}
                       </Button>
-                    </ModalFooter>
+                    </DialogFooter>
                   </>
                 )}
-              </ModalContent>
-            </Modal>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
-      </CardBody>
+      </CardContent>
     </Card>
   );
 };

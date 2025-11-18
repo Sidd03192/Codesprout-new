@@ -3,20 +3,14 @@ import { fetchAssignmentsForTeacher, insertUserIfNew } from "./api";
 import { getClasses } from "./api";
 import React from "react";
 import { useRouter } from "next/navigation";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerBody,
-  Button,
-  useDisclosure,
-  Avatar,
-  Spinner,
-} from "@heroui/react";
+import { Button } from "@/components/ui/button";
+import { Avatar } from "@/components/ui/avatar";
+import { Spinner } from "@/components/ui/spinner";
 import { Icon } from "@iconify/react";
 import { Sidebar } from "../components/sidebar";
 import { createClient } from "../../../utils/supabase/client";
 import { useEffect, useState } from "react";
+import { useDisclosure } from "@/hooks/useDisclosure";
 // Add page imports
 import { Overview } from "./pages/overview";
 import { Assignments } from "./pages/assignments";
@@ -223,7 +217,7 @@ export default function Dashboard() {
 
       {/* Mobile Drawer */}
       {isMobile && (
-        <Drawer isOpen={isOpen} onOpenChange={onOpenChange} placement="left">
+        <Drawer open={isOpen} onOpenChange={onOpenChange} placement="left">
           <DrawerContent>
             {(onClose) => (
               <>
@@ -238,7 +232,7 @@ export default function Dashboard() {
                       </div>
                       <span className="font-semibold"> Code Sprout</span>
                     </div>
-                    <Button isIconOnly variant="light" onPress={onClose}>
+                    <Button isIconOnly variant="light" onClick={onClose}>
                       <Icon icon="lucide:x" />
                     </Button>
                   </div>
@@ -268,7 +262,7 @@ export default function Dashboard() {
             <Button
               isIconOnly
               variant="light"
-              onPress={toggleSidebar}
+              onClick={toggleSidebar}
               className="mr-2"
             >
               <Icon
@@ -303,7 +297,7 @@ export default function Dashboard() {
             <Button
               variant="light"
               color="danger"
-              onPress={() => signOut()}
+              onClick={() => signOut()}
               className="ml-2"
             >
               <Icon icon="lucide:log-out" className="text-lg" />

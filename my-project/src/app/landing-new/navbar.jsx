@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { Button, user } from "@heroui/react";
+import { Button } from "@/components/ui/button";
 import "./landing.css";
 export const Navbar = ({ isAtTop, session, userRole }) => {
   return (

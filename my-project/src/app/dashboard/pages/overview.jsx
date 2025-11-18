@@ -20,7 +20,7 @@ import {
   Eye,
 } from "lucide-react";
 
-import { Card, CardBody } from "@heroui/react";
+import { Card, CardContent } from "@/components/ui/card";
 
 // Analytics Card Component
 const AnalyticsCard = ({
@@ -566,9 +566,9 @@ export const Overview = () => {
   return (
     <div className="bg-transparent min-h-screen text-slate-200 font-sans">
       <Card className="bg-transparent w-full h-full rounded-xl shadow-lg">
-        <CardBody className="w-full h-full p-6">
+        <CardContent className="w-full h-full p-6">
           {activeView === "Dashboard" && <DashboardOverview />}
-        </CardBody>
+        </CardContent>
       </Card>
     </div>
   );

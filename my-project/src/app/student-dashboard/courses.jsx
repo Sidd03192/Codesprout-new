@@ -1,24 +1,11 @@
+import { useDisclosure } from "@/hooks/useDisclosure";
 import React, { useEffect, useState } from "react";
-import {
-  addToast,
-  Card,
-  CardBody,
-  CardHeader,
-  Button,
-  Input,
-  Tabs,
-  Tab,
-  Chip,
-  Avatar,
-  Progress,
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  useDisclosure,
-  InputOtp,
-} from "@heroui/react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Avatar } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogHeader, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Icon } from "@iconify/react";
 import { getUserCourses, joinClassroom, getCourseDetails, leaveClassroom } from "./api";
 
@@ -75,7 +62,7 @@ export const StudentCourses = ({ user_id }) => {
   const handleJoinClassroom = async () => {
     const result = await joinClassroom(joinCode, user_id);
     if (!result) {
-      addToast({
+      toast({
         title: "Join Failed",
         description: "Invalid code or you already joined this classroom.",
         status: "danger",
@@ -83,7 +70,7 @@ export const StudentCourses = ({ user_id }) => {
       return; // Stop here, don’t try to reload courses
     }
 
-    addToast({
+    toast({
       title: "Joined Successfully",
       description: `You have joined ${result.name || "a new course"}!`,
       status: "success",
@@ -99,14 +86,14 @@ export const StudentCourses = ({ user_id }) => {
     
     const result = await leaveClassroom(courseToLeave.id, user_id);
     if (result.success) {
-      addToast({
+      toast({
         title: "Left Successfully",
         description: `You have left ${courseToLeave.name}`,
         status: "success",
       });
       await loadCourses();
     } else {
-      addToast({
+      toast({
         title: "Leave Failed",
         description: result.error || "Failed to leave classroom",
         status: "danger",
@@ -142,12 +129,12 @@ export const StudentCourses = ({ user_id }) => {
       <div className="space-y-6">
         {loading ? (
           <Card className="border border-divider">
-            <CardBody className="flex justify-center items-center py-20">
+            <CardContent className="flex justify-center items-center py-20">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
                 <p>Loading course details...</p>
               </div>
-            </CardBody>
+            </CardContent>
           </Card>
         ) : courseData ? (
           <>
@@ -157,7 +144,7 @@ export const StudentCourses = ({ user_id }) => {
                 variant="flat"
                 color="primary"
                 startContent={<Icon icon="lucide:arrow-left" />}
-                onPress={handleBackToCourses}
+                onClick={handleBackToCourses}
               >
                 Back to Courses
               </Button>
@@ -197,7 +184,7 @@ export const StudentCourses = ({ user_id }) => {
 
             {/* Tabbed Content */}
             <Card className="border border-divider">
-              <CardBody>
+              <CardContent>
                 <Tabs
                   selectedKey={activeTab}
                   onSelectionChange={setActiveTab}
@@ -223,7 +210,7 @@ export const StudentCourses = ({ user_id }) => {
                       {courseData.assignments.length > 0 ? (
                         courseData.assignments.map((assignment) => (
                           <Card key={assignment.id} className="border border-divider">
-                            <CardBody>
+                            <CardContent>
                               <div className="flex items-center justify-between">
                                 <div className="flex-1">
                                   <div className="flex items-center gap-3 mb-2">
@@ -264,7 +251,7 @@ export const StudentCourses = ({ user_id }) => {
                                   View Assignment
                                 </Button>
                               </div>
-                            </CardBody>
+                            </CardContent>
                           </Card>
                         ))
                       ) : (
@@ -292,7 +279,7 @@ export const StudentCourses = ({ user_id }) => {
                       {courseData.documents.length > 0 ? (
                         courseData.documents.map((doc) => (
                           <Card key={doc.id} className="border border-divider">
-                            <CardBody>
+                            <CardContent>
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                   <div className="p-3 rounded-md bg-content2">
@@ -320,7 +307,7 @@ export const StudentCourses = ({ user_id }) => {
                                   Download
                                 </Button>
                               </div>
-                            </CardBody>
+                            </CardContent>
                           </Card>
                         ))
                       ) : (
@@ -348,7 +335,7 @@ export const StudentCourses = ({ user_id }) => {
                       {courseData.announcements.length > 0 ? (
                         courseData.announcements.map((announcement) => (
                           <Card key={announcement.id} className="border border-divider">
-                            <CardBody>
+                            <CardContent>
                               <div className="flex items-start gap-3">
                                 <div className={`p-2 rounded-full ${
                                   announcement.priority === "high" ? "bg-danger-100 text-danger" : "bg-default-100 text-default-600"
@@ -373,7 +360,7 @@ export const StudentCourses = ({ user_id }) => {
                                   </div>
                                 </div>
                               </div>
-                            </CardBody>
+                            </CardContent>
                           </Card>
                         ))
                       ) : (
@@ -385,7 +372,7 @@ export const StudentCourses = ({ user_id }) => {
                     </div>
                   </Tab>
                 </Tabs>
-              </CardBody>
+              </CardContent>
             </Card>
           </>
         ) : null}
@@ -414,13 +401,13 @@ export const StudentCourses = ({ user_id }) => {
             <Button
               color="primary"
               startContent={<Icon icon="lucide:plus" />}
-              onPress={onOpen}
+              onClick={onOpen}
             >
               Join Course
             </Button>
           </div>
         </CardHeader>
-        <CardBody>
+        <CardContent>
           <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6">
             <Input
               placeholder="Search courses..."
@@ -463,7 +450,7 @@ export const StudentCourses = ({ user_id }) => {
                       </Chip>
                     </div>
                   </div>
-                  <CardBody>
+                  <CardContent>
                     <div className="space-y-4">
                       <div>
                         <h3 className="text-lg font-medium">{course.name}</h3>
@@ -490,7 +477,7 @@ export const StudentCourses = ({ user_id }) => {
                           size="sm" 
                           color="danger" 
                           variant="flat"
-                          onPress={() => handleLeaveClick(course)}
+                          onClick={() => handleLeaveClick(course)}
                         >
                           <Icon icon="lucide:log-out" className="mr-1" />
                           Leave
@@ -500,14 +487,14 @@ export const StudentCourses = ({ user_id }) => {
                             <Icon icon="lucide:book-open" className="mr-1" />
                             Materials
                           </Button>
-                          <Button size="sm" color="primary" onPress={() => handleGoToCourse(course)}>
+                          <Button size="sm" color="primary" onClick={() => handleGoToCourse(course)}>
                             <Icon icon="lucide:log-in" className="mr-1" />
                             Go to Course
                           </Button>
                         </div>
                       </div>
                     </div>
-                  </CardBody>
+                  </CardContent>
                 </Card>
               ))
             ) : (
@@ -523,18 +510,18 @@ export const StudentCourses = ({ user_id }) => {
               </div>
             )}
           </div>
-        </CardBody>
+        </CardContent>
       </Card>
 
       {/* Join Course Modal */}
-      <Modal isOpen={isOpen} onClose={onClose}>
-        <ModalContent>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent>
           {(onClose) => (
             <>
-              <ModalHeader className="flex flex-col gap-1">
+              <DialogHeader className="flex flex-col gap-1">
                 Join a Course
-              </ModalHeader>
-              <ModalBody>
+              </DialogHeader>
+              <DialogDescription>
                 <p className="text-center mb-4">
                   Enter the 5-digit course code provided by your instructor.
                 </p>
@@ -549,55 +536,55 @@ export const StudentCourses = ({ user_id }) => {
                     }}
                   />
                 </div>
-              </ModalBody>
-              <ModalFooter>
-                <Button color="danger" variant="light" onPress={onClose}>
+              </DialogDescription>
+              <DialogFooter>
+                <Button color="danger" variant="light" onClick={onClose}>
                   Cancel
                 </Button>
                 <Button
                   color="primary"
-                  onPress={handleJoinClassroom}
+                  onClick={handleJoinClassroom}
                   isDisabled={joinCode.length !== 5}
                 >
                   Join Course
                 </Button>
-              </ModalFooter>
+              </DialogFooter>
             </>
           )}
-        </ModalContent>
-      </Modal>
+        </DialogContent>
+      </Dialog>
 
       {/* Leave Course Confirmation Modal */}
-      <Modal isOpen={isLeaveOpen} onClose={onLeaveClose}>
-        <ModalContent>
+      <Dialog open={isLeaveOpen} onOpenChange={onLeaveClose}>
+        <DialogContent>
           {(onClose) => (
             <>
-              <ModalHeader className="flex flex-col gap-1">
+              <DialogHeader className="flex flex-col gap-1">
                 Leave Course
-              </ModalHeader>
-              <ModalBody>
+              </DialogHeader>
+              <DialogDescription>
                 <p className="text-center mb-4">
                   Are you sure you want to leave <strong>{courseToLeave?.name}</strong>?
                 </p>
                 <p className="text-sm text-foreground-500 text-center">
                   You will lose access to all course materials and assignments. You can rejoin using the course code if needed.
                 </p>
-              </ModalBody>
-              <ModalFooter>
-                <Button color="primary" variant="light" onPress={onClose}>
+              </DialogDescription>
+              <DialogFooter>
+                <Button color="primary" variant="light" onClick={onClose}>
                   Cancel
                 </Button>
                 <Button
                   color="danger"
-                  onPress={handleLeaveClassroom}
+                  onClick={handleLeaveClassroom}
                 >
                   Leave Course
                 </Button>
-              </ModalFooter>
+              </DialogFooter>
             </>
           )}
-        </ModalContent>
-      </Modal>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

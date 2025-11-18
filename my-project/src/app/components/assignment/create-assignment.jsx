@@ -2,29 +2,15 @@
 import { createClient } from "../../../../utils/supabase/client";
 import { useRouter } from "next/navigation";
 import { parseDate, parseDateTime } from "@internationalized/date";
-import {
-  Button,
-  Card,
-  Checkbox,
-  Divider,
-  Dropdown,
-  DropdownItem,
-  DropdownMenu,
-  DropdownTrigger,
-  Input,
-  ScrollShadow,
-  Select,
-  SelectItem,
-  Tabs,
-  Tab,
-  Textarea,
-  DatePicker,
-  Form,
-  Tooltip,
-  form,
-  Spinner,
-  addToast,
-} from "@heroui/react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Select, SelectItem } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { Spinner } from "@/components/ui/spinner";
 import React, { useEffect, useCallback, useRef } from "react";
 import {
   Code,
@@ -355,7 +341,7 @@ export default function CreateAssignmentPage({
 
     if (!description || description.trim() === "") {
       console.log("Description Required");
-      addToast({
+      toast({
         title: "Description Required",
         description:
           "Please provide a problem description before generating code.",
@@ -387,7 +373,7 @@ export default function CreateAssignmentPage({
 
       await handleTemplateStreaming(response);
 
-      addToast({
+      toast({
         title: "Template Generated",
         description: "Your Code template has been created !",
         color: "success",
@@ -396,7 +382,7 @@ export default function CreateAssignmentPage({
       });
     } catch (error) {
       console.error("AI generation failed:", error);
-      addToast({
+      toast({
         title: "Generation Failed",
         description: "Failed to generate code template. Please try again.",
         color: "danger",
@@ -414,7 +400,7 @@ export default function CreateAssignmentPage({
       descriptionRef.current?.getText?.() || formData.description;
 
     if (!code || code.trim() === "") {
-      addToast({
+      toast({
         title: "Code Required",
         description:
           "Please provide code in the editor before generating test cases.",
@@ -426,7 +412,7 @@ export default function CreateAssignmentPage({
     }
 
     if (!description || description.trim() === "") {
-      addToast({
+      toast({
         title: "Description Required",
         description:
           "Please provide a problem description before generating test cases.",
@@ -480,7 +466,7 @@ export default function CreateAssignmentPage({
 
         setTestcases([testcaseObject]);
 
-        addToast({
+        toast({
           title: "Test Cases Generated",
           description: "Test cases have been generated based on your code!",
           color: "success",
@@ -490,7 +476,7 @@ export default function CreateAssignmentPage({
       }
     } catch (error) {
       console.error("Test case generation failed:", error);
-      addToast({
+      toast({
         title: "Generation Failed",
         description: "Failed to generate test cases. Please try again.",
         color: "danger",
@@ -521,7 +507,7 @@ export default function CreateAssignmentPage({
   // Complete AI Assignment Generation
   const generateCompleteAssignment = async () => {
     if (!aiPrompt.trim()) {
-      addToast({
+      toast({
         title: "Prompt Required",
         description:
           "Please enter a description of the assignment you want to create.",
@@ -600,7 +586,7 @@ export default function CreateAssignmentPage({
       // Hide AI prompt and show form
       setShowAIPrompt(false);
 
-      addToast({
+      toast({
         title: "Assignment Generated Successfully!",
         description:
           "Your complete assignment has been generated. You can now edit any details.",
@@ -610,7 +596,7 @@ export default function CreateAssignmentPage({
       });
     } catch (error) {
       console.error("AI assignment generation failed:", error);
-      addToast({
+      toast({
         title: "Generation Failed",
         description:
           "Failed to generate complete assignment. Please try again.",
@@ -725,7 +711,7 @@ export default function CreateAssignmentPage({
   
     // Validate dates before submission
     if (!validateDates(startDate, dueDate)) {
-      addToast({
+      toast({
         title: "Invalid Dates",
         description: "Please fix the date errors before submitting.",
         color: "danger",
@@ -736,7 +722,7 @@ export default function CreateAssignmentPage({
     }
   
     if (!startDate || !dueDate) {
-      addToast({
+      toast({
         title: "Missing Dates",
         description: "Please select both start and due dates.",
         color: "danger",
@@ -814,7 +800,7 @@ export default function CreateAssignmentPage({
   
       if (assignmentError) {
         console.error("Error with assignment:", assignmentError);
-        addToast({
+        toast({
           title: "Database Error",
           description: `Failed to ${isEdit ? 'update' : 'create'} assignment: ${assignmentError.message}`,
           color: "danger",
@@ -866,7 +852,7 @@ export default function CreateAssignmentPage({
   
           if (studentAssignmentError) {
             console.error("Error inserting student assignments:", studentAssignmentError);
-            addToast({
+            toast({
               title: "Partial Success",
               description: `Assignment ${isEdit ? 'updated' : 'created'} but failed to assign to students: ${studentAssignmentError.message}`,
               color: "warning",
@@ -893,7 +879,7 @@ export default function CreateAssignmentPage({
           }
         }
   
-        addToast({
+        toast({
           title: `Assignment ${isEdit ? 'Updated' : 'Created'} Successfully`,
           description: `The assignment will now be visible in the assignments page`,
           color: "success",
@@ -903,7 +889,7 @@ export default function CreateAssignmentPage({
         });
       } else {
         console.error(`Assignment ${isEdit ? 'update' : 'creation'} returned no result.`);
-        addToast({
+        toast({
           title: "Unexpected Error",
           description: "An unexpected error occurred. Please try again.",
           color: "danger",
@@ -914,7 +900,7 @@ export default function CreateAssignmentPage({
       }
     } catch (error) {
       console.error("An unexpected error occurred during submission:", error);
-      addToast({
+      toast({
         title: "Unexpected Error",
         description: `An unexpected error occurred: ${error.message}`,
         color: "danger",
@@ -1176,14 +1162,14 @@ export default function CreateAssignmentPage({
                   <Button
                     variant="flat"
                     color="primary"
-                    onPress={() => setShowAIPrompt(false)}
+                    onClick={() => setShowAIPrompt(false)}
                     isDisabled={isGeneratingAssignment}
                   >
                     Create Manually
                   </Button>
                   <Button
                     color="secondary"
-                    onPress={generateCompleteAssignment}
+                    onClick={generateCompleteAssignment}
                     isLoading={isGeneratingAssignment}
                     isDisabled={!aiPrompt.trim()}
                   >
@@ -1293,7 +1279,7 @@ export default function CreateAssignmentPage({
                           className="mb-3"
                           color="primary"
                           variant="flat"
-                          onPress={handleSelectAllStudents}
+                          onClick={handleSelectAllStudents}
                         >
                           {students.length ===
                           formData.selectedStudentIds?.length
@@ -1379,7 +1365,7 @@ export default function CreateAssignmentPage({
                       variant="flat"
                       color="primary"
                       className="min-w-[100px] "
-                      onPress={triggerFileUpload}
+                      onClick={triggerFileUpload}
                     >
                       <Icon icon="lucide:upload" className="" />
                       Upload
@@ -1388,7 +1374,7 @@ export default function CreateAssignmentPage({
                       variant="flat"
                       color="secondary"
                       className="min-w-[130px] "
-                      onPress={generateWithAI}
+                      onClick={generateWithAI}
                       isDisabled={isGenerating}
                     >
                       <Icon icon="lucide:wand-sparkles" />
@@ -1398,7 +1384,7 @@ export default function CreateAssignmentPage({
                       variant="flat"
                       color="success"
                       className="min-w-[100px]"
-                      onPress={runCode}
+                      onClick={runCode}
                       isDisabled={isRunning}
                     >
                       <Icon icon="lucide:play" />
@@ -1481,7 +1467,7 @@ export default function CreateAssignmentPage({
                           color="secondary"
                           variant="flat"
                           size="sm"
-                          onPress={generateTestCases}
+                          onClick={generateTestCases}
                           isLoading={isGeneratingTestCases}
                           isDisabled={isGeneratingTestCases}
                         >
@@ -1549,7 +1535,7 @@ export default function CreateAssignmentPage({
                         </Checkbox>
                       </div>
                       <div className="w-full flex items-center justify-center">
-                        <Divider className="w-4/5 justify-center" />
+                        <Separator className="w-4/5 justify-center" />
                       </div>
                       <div className="space-y-4 pt-2 overflow-y-auto max-h-[450px] custom-scrollbar">
                         <MiniRubric
@@ -1630,7 +1616,7 @@ export default function CreateAssignmentPage({
             </Card>
 
             <div className="flex justify-between">
-              <Button size="lg" variant="flat" onPress={handlePreview}>
+              <Button size="lg" variant="flat" onClick={handlePreview}>
                 See Preview
               </Button>
 
@@ -1671,7 +1657,7 @@ export default function CreateAssignmentPage({
         {showPreviewModal && assignmentPreviewData && (
           <AssignmentPreview
             assignment={assignmentPreviewData}
-            onClose={() => setShowPreviewModal(false)}
+            onOpenChange={() => setShowPreviewModal(false)}
           />
         )}
       </main>

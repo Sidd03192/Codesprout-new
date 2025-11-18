@@ -11,7 +11,7 @@ import {
   extraJavaClasses,
 } from "./constants";
 import { PenOff, Eye } from "lucide-react";
-import { addToast } from "@heroui/react";
+import { toast } from "sonner";
 
 export default function CodeEditor({
   language,
@@ -117,12 +117,9 @@ export default function CodeEditor({
                 for (let i = startLine; i <= endLine; i++) {
                   if (currentLockedLines.has(i)) {
                     shouldUndo = true;
-                    addToast({
-                      title: "Dissalowed Action",
+                    toast("Disallowed Action", {
                       description: "You may not edit locked lines.",
-                      color: "warning",
                       duration: 5000,
-                      variant: "solid",
                     });
                     break;
                   }

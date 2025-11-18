@@ -1,20 +1,10 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import {
-  Card,
-  CardBody,
-  CardHeader,
-  Button,
-  Input,
-  Tabs,
-  Tab,
-  Chip,
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-} from "@heroui/react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Icon } from "@iconify/react";
 import { Code, CircleX } from "lucide-react";
 import CodeEditor from "../../components/editor/code-editor";
@@ -152,7 +142,7 @@ export const Assignments = ({ session, classes, initialAssignments }) => {
     const status = determineStatus(assignment);
     return (
       <Card key={assignment.id} className="border border-divider">
-        <CardBody>
+        <CardContent>
           <div className="flex flex-col sm:flex-row justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
@@ -195,7 +185,7 @@ export const Assignments = ({ session, classes, initialAssignments }) => {
               <Button
                 size="sm"
                 variant="flat"
-                onPress={() => {
+                onClick={() => {
                   setAssignmentToEdit(assignment);
                   setEditModalOpen(true);
                 }}
@@ -207,7 +197,7 @@ export const Assignments = ({ session, classes, initialAssignments }) => {
                 size="sm"
                 variant="flat"
                 color="danger"
-                onPress={() => {
+                onClick={() => {
                   setAssignmentToDelete(assignment);
                   setDeleteModalOpen(true);
                 }}
@@ -216,7 +206,7 @@ export const Assignments = ({ session, classes, initialAssignments }) => {
               </Button>
             </div>
           </div>
-        </CardBody>
+        </CardContent>
       </Card>
     );
   };
@@ -241,7 +231,7 @@ export const Assignments = ({ session, classes, initialAssignments }) => {
             <Button
               size="sm"
               variant="light"
-              onPress={() => setSelectedClassroom(null)}
+              onClick={() => setSelectedClassroom(null)}
               startContent={<Icon icon="lucide:chevron-left" />}
             >
               Back to All Classrooms
@@ -281,9 +271,9 @@ export const Assignments = ({ session, classes, initialAssignments }) => {
               key={classId} 
               className="border border-divider hover:border-primary/50 transition-colors cursor-pointer"
               isPressable
-              onPress={() => setSelectedClassroom(classroom || { id: parseInt(classId), name: `Class ${classId}` })}
+              onClick={() => setSelectedClassroom(classroom || { id: parseInt(classId), name: `Class ${classId}` })}
             >
-              <CardBody>
+              <CardContent>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -327,7 +317,7 @@ export const Assignments = ({ session, classes, initialAssignments }) => {
                     )}
                   </div>
                 </div>
-              </CardBody>
+              </CardContent>
             </Card>
           );
         })}
@@ -362,7 +352,7 @@ export const Assignments = ({ session, classes, initialAssignments }) => {
                 size="sm"
                 variant={viewMode === "list" ? "solid" : "light"}
                 color={viewMode === "list" ? "primary" : "default"}
-                onPress={() => {
+                onClick={() => {
                   setViewMode("list");
                   setSelectedClassroom(null);
                 }}
@@ -374,7 +364,7 @@ export const Assignments = ({ session, classes, initialAssignments }) => {
                 size="sm"
                 variant={viewMode === "classroom" ? "solid" : "light"}
                 color={viewMode === "classroom" ? "primary" : "default"}
-                onPress={() => setViewMode("classroom")}
+                onClick={() => setViewMode("classroom")}
                 className="min-w-unit-12"
               >
                 <Icon icon="lucide:school" />
@@ -383,7 +373,7 @@ export const Assignments = ({ session, classes, initialAssignments }) => {
             <Button
               color="secondary"
               variant="flat"
-              onPress={() => setOpen(true)}
+              onClick={() => setOpen(true)}
               className="flex items-center"
             >
               <Icon icon="lucide:plus" className="mr-1" />
@@ -392,9 +382,9 @@ export const Assignments = ({ session, classes, initialAssignments }) => {
           </div>
 
           {/* Create Assignment Modal */}
-          <Modal
-            isOpen={open}
-            onClose={() => setOpen(false)}
+          <Dialog
+            open={open}
+            onOpenChange={() => setOpen(false)}
             closeButton={
               <Button isIconOnly variant="light" color="danger">
                 <CircleX color="red" />
@@ -402,24 +392,24 @@ export const Assignments = ({ session, classes, initialAssignments }) => {
             }
             className="max-h-[90vh] max-w-[90vw] overflow-y-auto"
           >
-            <ModalContent className="w-full">
-              <ModalHeader className="flex border-zinc-800 bg-zinc-900">
+            <DialogContent className="w-full">
+              <DialogHeader className="flex border-zinc-800 bg-zinc-900">
                 <div className="flex items-center gap-3">
                   <Code className="text-2xl" color="white" />
                   <h1 className="text-xl font-semibold">Assignment Creator</h1>
                 </div>
-              </ModalHeader>
+              </DialogHeader>
               <CreateAssignmentPage
                 session={session}
                 classes={classes}
-                onClose={() => setOpen(false)}
+                onOpenChange={() => setOpen(false)}
               />
-            </ModalContent>
-          </Modal>
+            </DialogContent>
+          </Dialog>
           {/* Edit Assignment Modal */}
-          <Modal
-            isOpen={editModalOpen}
-            onClose={() => setEditModalOpen(false)}
+          <Dialog
+            open={editModalOpen}
+            onOpenChange={() => setEditModalOpen(false)}
             closeButton={
               <Button isIconOnly variant="light" color="danger">
                 <CircleX color="red" />
@@ -427,13 +417,13 @@ export const Assignments = ({ session, classes, initialAssignments }) => {
             }
             className="max-h-[90vh] max-w-[90vw] overflow-y-auto"
           >
-            <ModalContent className="w-full">
-              <ModalHeader className="flex border-zinc-800 bg-zinc-900">
+            <DialogContent className="w-full">
+              <DialogHeader className="flex border-zinc-800 bg-zinc-900">
                 <div className="flex items-center gap-3">
                   <Code className="text-2xl" color="white" />
                   <h1 className="text-xl font-semibold">Assignment Editor</h1>
                 </div>
-              </ModalHeader>
+              </DialogHeader>
               <CreateAssignmentPage
                 session={session}
                 classes={classes}
@@ -441,31 +431,31 @@ export const Assignments = ({ session, classes, initialAssignments }) => {
                 setOpen={setEditModalOpen}
                 isEdit={true}
               />
-            </ModalContent>
-          </Modal>
+            </DialogContent>
+          </Dialog>
 
           {/* Delete Assignment Modal */}
-          <Modal
-            isOpen={deleteModalOpen}
-            onClose={() => setDeleteModalOpen(false)}
+          <Dialog
+            open={deleteModalOpen}
+            onOpenChange={() => setDeleteModalOpen(false)}
             size="sm"
           >
-            <ModalContent>
-              <ModalHeader className="flex flex-col gap-1">
+            <DialogContent>
+              <DialogHeader className="flex flex-col gap-1">
                 <h2 className="text-lg font-semibold text-danger">Delete Assignment</h2>
-              </ModalHeader>
-              <ModalBody>
+              </DialogHeader>
+              <DialogDescription>
                 <p>
                   Are you sure you want to delete "{assignmentToDelete?.title}"?
                 </p>
                 <p className="text-sm text-foreground-500">
                   This action cannot be undone and will permanently delete the assignment and all its data.
                 </p>
-              </ModalBody>
-              <ModalFooter>
+              </DialogDescription>
+              <DialogFooter>
                 <Button
                   variant="light"
-                  onPress={() => setDeleteModalOpen(false)}
+                  onClick={() => setDeleteModalOpen(false)}
                   disabled={deleting}
                 >
                   Cancel
@@ -473,17 +463,17 @@ export const Assignments = ({ session, classes, initialAssignments }) => {
                 <Button
                   color="danger"
                   variant="solid"
-                  onPress={handleDeleteAssignment}
+                  onClick={handleDeleteAssignment}
                   isLoading={deleting}
                   disabled={deleting}
                 >
                   Delete
                 </Button>
-              </ModalFooter>
-            </ModalContent>
-          </Modal>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </CardHeader>
-        <CardBody>
+        <CardContent>
           {viewMode === "classroom" && !selectedClassroom ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -542,7 +532,7 @@ export const Assignments = ({ session, classes, initialAssignments }) => {
               )}
             </>
           )}
-        </CardBody>
+        </CardContent>
       </Card>
     </div>
   );

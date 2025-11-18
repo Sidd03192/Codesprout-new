@@ -1,21 +1,11 @@
 "use client";
 
 import React from "react";
-import {
-  Navbar,
-  NavbarBrand,
-  NavbarContent,
-  NavbarItem,
-  NavbarMenu,
-  NavbarMenuItem,
-  NavbarMenuToggle,
-  Link,
-  Button,
-  Divider,
-} from "@heroui/react";
+import { Button } from "@/components/ui/button";
 import { Icon } from "@iconify/react";
-import { cn } from "@heroui/react";
+import { cn } from "@/lib/utils";
 import Image from "next/image";
+
 const menuItems = [
   "About",
   "Blog",
@@ -28,74 +18,43 @@ const menuItems = [
 ];
 
 export default function Component(props) {
-
   return (
-    <Navbar isBordered="true"
-   
-    >
-      {/* Left Content */}
-      <div className="justify-start flex items-center gap-2">
-            <Image src="/2.png" width={40} height={40} alt="Code Sprout Logo"/>
-        <span className="ml-2 text-large font-medium">Code Sprout</span>
-      </div>
+    <nav className="border-b">
+      <div className="container mx-auto flex items-center justify-between px-4 py-3">
+        {/* Left Content */}
+        <div className="flex items-center gap-2">
+          <Image src="/2.png" width={40} height={40} alt="Code Sprout Logo"/>
+          <span className="ml-2 text-lg font-medium">Code Sprout</span>
+        </div>
 
-      {/* Center Content */}
-      <NavbarContent justify="center">
-        {/* <NavbarItem>
-          <Link className="text-default-500" href="#" size="sm">
-            Home
-          </Link>
-        </NavbarItem>
-        <NavbarItem>
-          <Link className="text-default-500" href="#" size="sm">
-            Features
-          </Link>
-        </NavbarItem>
-        <NavbarItem isActive>
-          <Link aria-current="page" color="foreground" href="#" size="sm">
-            Customers
-          </Link>
-        </NavbarItem>
-        <NavbarItem>
-          <Link className="text-default-500" href="#" size="sm">
-            About Us
-          </Link>
-        </NavbarItem>
-        <NavbarItem>
-          <Link className="text-default-500" href="#" size="sm">
-            Integrations
-          </Link>
-        </NavbarItem> */}
-      </NavbarContent>
+        {/* Center Content */}
+        <div className="flex justify-center">
+          {/* Navigation items can be added here */}
+        </div>
 
-      {/* Right Content */}
-      <NavbarContent className="hidden md:flex" justify="end">
-        <NavbarItem className="ml-2 !flex gap-2">
-          <Button className="text-default-500" radius="full" variant="light">
+        {/* Right Content */}
+        <div className="hidden md:flex items-center gap-2">
+          <Button variant="ghost" className="rounded-full">
             Login
-                  </Button>
-                  {props.session ? (
-                    <Button className="bg-foreground font-medium text-background"
-            color="secondary"
-            endContent={<Icon icon="solar:alt-arrow-right-linear" />}
-            radius="full"
-            variant="flat" onPress={() => window.location.href = "/dashboard"}>
-                      Dashboard
-                      </Button>) :
-                      <Button
-            className="bg-foreground font-medium text-background"
-            color="secondary"
-            endContent={<Icon icon="solar:alt-arrow-right-linear" />}
-            radius="full"
-            variant="flat"
-          > Get Started
           </Button>
-                     }
-          
-           
-        </NavbarItem>
-      </NavbarContent>
-
-    </Navbar>
+          {props.session ? (
+            <Button
+              className="bg-foreground font-medium text-background rounded-full"
+              onClick={() => window.location.href = "/dashboard"}
+            >
+              Dashboard
+              <Icon icon="solar:alt-arrow-right-linear" className="ml-2" />
+            </Button>
+          ) : (
+            <Button
+              className="bg-foreground font-medium text-background rounded-full"
+            >
+              Get Started
+              <Icon icon="solar:alt-arrow-right-linear" className="ml-2" />
+            </Button>
+          )}
+        </div>
+      </div>
+    </nav>
   );
 }

@@ -1,13 +1,7 @@
 "use client";
+import { useDisclosure } from "@/hooks/useDisclosure";
 import React from "react";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerBody,
-  Button,
-  useDisclosure,
-} from "@heroui/react";
+import { Button } from "@/components/ui/button";
 import { Icon } from "@iconify/react";
 import { Sidebar } from "../components/student-sidebar";
 import { useEffect, useCallback } from "react";
@@ -228,7 +222,7 @@ export default function StudentDashboard() {
 
         {/* Mobile Drawer */}
         {isMobile && (
-          <Drawer isOpen={isOpen} onOpenChange={onOpenChange} placement="left">
+          <Drawer open={isOpen} onOpenChange={onOpenChange} placement="left">
             <DrawerContent>
               {(onClose) => (
                 <>
@@ -245,7 +239,7 @@ export default function StudentDashboard() {
                           Student Dashboard
                         </span>
                       </div>
-                      <Button isIconOnly variant="light" onPress={onClose}>
+                      <Button isIconOnly variant="light" onClick={onClose}>
                         <Icon icon="lucide:x" />
                       </Button>
                     </div>
@@ -274,7 +268,7 @@ export default function StudentDashboard() {
             <Button
               isIconOnly
               variant="light"
-              onPress={toggleSidebar}
+              onClick={toggleSidebar}
               className="mr-2"
             >
               <Icon

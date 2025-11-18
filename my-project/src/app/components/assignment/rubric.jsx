@@ -1,4 +1,5 @@
-import { Button, Chip, Input } from "@heroui/react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   ArrowRight,
   PenTool,
@@ -197,7 +198,7 @@ export const Rubric = ({
                         color={section.autograde ? "secondary" : "default"}
                         variant="flat"
                         className="cursor-pointer"
-                        onPress={() => handleToggleAutograde(section.id)}
+                        onClick={() => handleToggleAutograde(section.id)}
                       >
                         {section.autograde ? (
                           <div className="flex items-center">

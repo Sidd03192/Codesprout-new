@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { Icon } from "@iconify/react";
-import { Avatar } from "@heroui/react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import Image from "next/image";
 export const Sidebar = ({ isCollapsed, activePage, setActivePage }) => {
   // Navigation items - updated for teacher dashboard

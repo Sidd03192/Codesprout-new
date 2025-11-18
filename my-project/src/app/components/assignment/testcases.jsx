@@ -15,15 +15,8 @@ import {
 // JSZip is imported directly from a CDN that serves ES modules.
 // This avoids the need for a local installation or a separate script tag.
 import JSZip from "jszip";
-import {
-  addToast,
-  ScrollShadow,
-  Spinner,
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-  Button,
-} from "@heroui/react";
+import { Spinner } from "@/components/ui/spinner";
+import { Button } from "@/components/ui/button";
 import Editor from "@monaco-editor/react";
 
 export const Testcase = ({ testcases, setTestcases }) => {
@@ -124,7 +117,7 @@ export const Testcase = ({ testcases, setTestcases }) => {
   useEffect(() => {
     if (validationResult) {
       if (!validationResult.hasTestJava) {
-        addToast({
+        toast({
           title: "Error",
           description: "No Test.java file found in uploaded files.",
           duration: 5000,
@@ -223,7 +216,7 @@ export const Testcase = ({ testcases, setTestcases }) => {
       setFileContent(content);
     } catch (error) {
       console.error("Error reading file:", error);
-      addToast({
+      toast({
         title: "Error",
         description: "Failed to read file content.",
         duration: 3000,
@@ -260,7 +253,7 @@ export const Testcase = ({ testcases, setTestcases }) => {
 
       setFileContent(newContent);
 
-      addToast({
+      toast({
         title: "Success",
         description: "File saved successfully.",
         duration: 3000,
@@ -269,7 +262,7 @@ export const Testcase = ({ testcases, setTestcases }) => {
       });
     } catch (error) {
       console.error("Error saving file:", error);
-      addToast({
+      toast({
         title: "Error",
         description: "Failed to save file.",
         duration: 3000,
@@ -446,7 +439,7 @@ export const Testcase = ({ testcases, setTestcases }) => {
                             size="sm"
                             color="primary"
                             variant="flat"
-                            onPress={() => handleSaveFile(fileContent)}
+                            onClick={() => handleSaveFile(fileContent)}
                           >
                             Save File
                           </Button>

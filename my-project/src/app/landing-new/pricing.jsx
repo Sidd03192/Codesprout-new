@@ -8,7 +8,7 @@ import {
   ArrowRight,
   Sparkles,
 } from "lucide-react";
-import { Button } from "@heroui/react";
+import { Button } from "@/components/ui/button";
 
 // Intersection Observer hook for animations
 const useInView = (threshold = 0.1) => {

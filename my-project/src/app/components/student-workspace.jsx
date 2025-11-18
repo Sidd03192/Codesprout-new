@@ -1,4 +1,5 @@
 "use client";
+import { useDisclosure } from "@/hooks/useDisclosure";
 import React, {
   useState,
   useRef,
@@ -33,35 +34,20 @@ import {
   Save,
   Bubbles,
 } from "lucide-react";
-import {
-  Button,
-  Tabs,
-  Tab,
-  Select,
-  SelectItem,
-  Card,
-  CardBody,
-  CardHeader,
-  Tooltip,
-  Spinner,
-  Skeleton,
-  addToast,
-  code,
-} from "@heroui/react";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectItem } from "@/components/ui/select";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Spinner } from "@/components/ui/spinner";
 import { createClient } from "../../../utils/supabase/client";
 import { executeCode } from "./editor/api";
 import "./assignment/RichText/editor-styles.css"; // Import highlight.js theme
 import { Results } from "./results";
 import { Icon } from "@iconify/react";
-import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  useDisclosure,
-} from "@heroui/react";
+import { Dialog, DialogContent, DialogHeader, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import CodeEditor from "./editor/code-editor";
+import { toast } from "sonner";
 
 export const CodingInterface = ({
   id,
@@ -328,7 +314,7 @@ export const CodingInterface = ({
 
   const saveAssignmentData = async (isSubmit) => {
     console.log("Saving assignment data...");
-    if (isPreview || role == "teacher") {
+    if (isPreview || role === "teacher") {
       console.warn("Preview mode, skipping save/submit.");
       return;
     }
@@ -363,23 +349,13 @@ export const CodingInterface = ({
         if (submit) {
           console.log("Assignment data submitted successfully");
           setActiveTab("results");
-          addToast({
-            title: "Assignment Submitted",
+          toast.success("Assignment Submitted", {
             description: "Your assignment has been submitted successfully.",
-            status: "success",
-            color: "success",
-            variant: "bordered",
-            duration: 3000,
           });
         } else {
           console.log("Assignment data saved successfully");
-          addToast({
-            title: "Assignment Saved",
+          toast.success("Assignment Saved", {
             description: "Your assignment progress has been saved.",
-            status: "success",
-            color: "success",
-            variant: "bordered",
-            duration: 3000,
           });
         }
       } else {
@@ -390,22 +366,12 @@ export const CodingInterface = ({
     } catch (error) {
       console.error("Save/submit error:", error);
       if (submit) {
-        addToast({
-          title: "Submission Failed",
+        toast.error("Submission Failed", {
           description: "There was an error submitting your assignment.",
-          status: "error",
-          duration: 3000,
-          color: "danger",
-          variant: "bordered",
         });
       } else {
-        addToast({
-          title: "Save Failed",
+        toast.error("Save Failed", {
           description: "There was an error saving your assignment progress.",
-          status: "error",
-          duration: 3000,
-          color: "danger",
-          variant: "bordered",
         });
       }
     } finally {
@@ -431,24 +397,20 @@ export const CodingInterface = ({
     []
   );
   const handleResetCode = () => {
-    if (role == "teacher") return;
+    if (role === "teacher") return;
     if (initialCode) {
       editorRef.current?.setValue(initialCode);
     } else {
-      addToast({
-        title: "No initial code available",
+      toast.warning("No initial code available", {
         description:
           "There is no initial code to reset to. This may be an error",
-        duration: 3000,
-        color: "warning",
-        variant: "flat",
       });
     }
   };
   const [output, setOutput] = useState(null);
 
   const runCode = async () => {
-    const code = editorRef.current?.getValue?.();
+    const code = editorRef.current?.getValue();
     console.log("Running code..:", code);
 
     if (!code) {
@@ -457,7 +419,7 @@ export const CodingInterface = ({
     }
 
     try {
-      // TODO edit teh selecedLanguage
+      // TODO: Make language selection dynamic
       setIsRunning(true);
       const startTime = performance.now();
       const result = await executeCode("java", code);
@@ -493,6 +455,7 @@ export const CodingInterface = ({
       }
     } else if (dragType.current === "horizontal") {
       const rightPanel = document.querySelector(".right-panel");
+      if (!rightPanel) return;
       const rect = rightPanel.getBoundingClientRect();
       const newHeight = ((e.clientY - rect.top) / rect.height) * 100;
       if (newHeight > 30 && newHeight < 85) {
@@ -738,14 +701,13 @@ export const CodingInterface = ({
             {/* Code Editor Header */}
             <CardHeader className="flex items-center justify-between  py-2 px-6 border-b border-white/10 bg-black/20  h-14">
               <Select
-                defaultSelectedKeys={[`${currentData?.language || "java"}`]}
+                defaultValue={currentData?.language || "java"}
                 onChange={(e) => setSelectedLanguage(e.target.value)}
-                className="bg-gray-800/60 text-white w-36 rounded-lg  "
-                size="sm"
-                isDisabled
+                className="bg-gray-800/60 text-white w-36 rounded-lg"
+                disabled
               >
-                <SelectItem key={"python"}>🐍 Python</SelectItem>
-                <SelectItem key={"java"}>☕ Java</SelectItem>
+                <SelectItem key="python">🐍 Python</SelectItem>
+                <SelectItem key="java">☕ Java</SelectItem>
               </Select>
               <div className="text-sm text-gray-400 font-semibold bg-gray-800/40 px-4 py-2 rounded-lg border border-gray-700/30">
                 <span>⏰</span>
@@ -768,26 +730,31 @@ export const CodingInterface = ({
               </div>
 
               <div className="flex items-center gap-2">
-                <Tooltip content="Reset Code" color="danger">
-                  <Button
-                    onPress={handleResetCode}
-                    isIconOnly
-                    variant="light"
-                    className=" hover:bg-white/10 rounded-xl transition-all duration-200 group"
-                    size="sm"
-                  >
-                    <RotateCcw
-                      size={16}
-                      className="text-gray-400 group-hover:text-white"
-                    />
-                  </Button>
-                </Tooltip>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={handleResetCode}
+                        variant="ghost"
+                        size="icon"
+                        className="hover:bg-white/10 rounded-xl transition-all duration-200 group h-9 w-9"
+                      >
+                        <RotateCcw
+                          size={16}
+                          className="text-gray-400 group-hover:text-white"
+                        />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Reset Code</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
 
                 <Button
-                  isIconOnly
-                  variant="light"
-                  className=" hover:bg-white/10 rounded-xl transition-all duration-200 group"
-                  size="sm"
+                  variant="ghost"
+                  size="icon"
+                  className="hover:bg-white/10 rounded-xl transition-all duration-200 group h-9 w-9"
                 >
                   <Settings
                     size={16}
@@ -809,11 +776,11 @@ export const CodingInterface = ({
                   language={selectedLanguage || "java"}
                   editorRef={editorRef}
                   role="student"
-                  // TODO : make this dynamic
+                  // TODO: Make menu settings dynamic
                   disableMenu={true}
                   starterCode={currentData?.code_template || ""}
                   initialLockedLines={new Set([])}
-                  isDisabled={timeUp}
+                  disabled={timeUp}
                 />
               </div>
             )}
@@ -842,55 +809,40 @@ export const CodingInterface = ({
 
               <div className="absolute bottom-4 right-4 flex items-center gap-2">
                 <Button
-                  onPress={runCode}
-                  isDisabled={isRunning}
-                  size="md"
-                  radius="sm"
-                  startContent={
-                    isRunning ? (
-                      <Spinner color="default" size="sm" />
-                    ) : (
-                      <Play size={16} />
-                    )
-                  }
-                  color="secondary"
-                  variant="faded"
+                  onClick={runCode}
+                  disabled={isRunning}
+                  variant="secondary"
+                  className="gap-2"
                 >
-                  Run
+                  {isRunning ? (
+                    <><Spinner className="h-4 w-4" />Running...</>
+                  ) : (
+                    <><Play size={16} />Run</>
+                  )}
                 </Button>
                 <Button
-                  color="primary"
-                  variant="faded"
-                  size="md"
-                  radius="sm"
-                  onPress={() => saveAssignmentData(false)}
-                  isDisabled={isSubmitting || saving || timeUp || isPreview}
-                  startContent={
-                    saving ? (
-                      <Spinner size="sm" color="default" />
-                    ) : (
-                      <Save size={16} />
-                    )
-                  }
+                  variant="default"
+                  onClick={() => saveAssignmentData(false)}
+                  disabled={isSubmitting || saving || timeUp || isPreview}
+                  className="gap-2"
                 >
-                  Save
+                  {saving ? (
+                    <><Spinner className="h-4 w-4" />Saving...</>
+                  ) : (
+                    <><Save size={16} />Save</>
+                  )}
                 </Button>
                 <Button
-                  onPress={onOpen}
-                  isDisabled={isSubmitting || timeUp || isPreview}
-                  size="md"
-                  radius="sm"
-                  startContent={
-                    isSubmitting ? (
-                      <Spinner color="default" size="sm" />
-                    ) : (
-                      <CloudUpload size={16} />
-                    )
-                  }
-                  color="success"
-                  variant="faded"
+                  onClick={onOpen}
+                  disabled={isSubmitting || timeUp || isPreview}
+                  variant="default"
+                  className="gap-2 bg-green-600 hover:bg-green-700"
                 >
-                  Submit
+                  {isSubmitting ? (
+                    <><Spinner className="h-4 w-4" />Submitting...</>
+                  ) : (
+                    <><CloudUpload size={16} />Submit</>
+                  )}
                 </Button>
               </div>
 
@@ -902,46 +854,46 @@ export const CodingInterface = ({
                 accept=".java,.py,.txt,.js,.cpp,.jsx,.zip"
                 onChange={handleFileUpload}
               />
-              <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
-                <ModalContent>
-                  {(onClose) => (
-                    <>
-                      <ModalHeader className="flex flex-col gap-1">
-                        Submit Assignment
-                      </ModalHeader>
-                      <ModalBody>
-                        {isSubmitting ? (
-                          <p>
-                            Your assignment is being submitted. Please do not
-                            close this window.
-                          </p>
-                        ) : (
-                          <p>
-                            Are you sure you want to submit this assignment?
-                            This action cannot be undone.
-                          </p>
-                        )}
-                      </ModalBody>
-                      <ModalFooter>
-                        <Button
-                          color="danger"
-                          variant="light"
-                          onPress={onClose}
-                        >
-                          Close
-                        </Button>
-                        <Button
-                          color="success"
-                          onPress={() => saveAssignmentData(true)}
-                          isDisabled={isSubmitting || timeUp || isPreview}
-                        >
-                          {isSubmitting ? <Spinner size="sm" /> : "Yes, Submit"}
-                        </Button>
-                      </ModalFooter>
-                    </>
-                  )}
-                </ModalContent>
-              </Modal>
+              <Dialog open={isOpen} onOpenChange={onOpenChange}>
+                <DialogContent>
+                  <DialogHeader className="flex flex-col gap-1">
+                    Submit Assignment
+                  </DialogHeader>
+                  <DialogDescription>
+                    {isSubmitting ? (
+                      <p>
+                        Your assignment is being submitted. Please do not
+                        close this window.
+                      </p>
+                    ) : (
+                      <p>
+                        Are you sure you want to submit this assignment?
+                        This action cannot be undone.
+                      </p>
+                    )}
+                  </DialogDescription>
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => onOpenChange(false)}
+                    >
+                      Close
+                    </Button>
+                    <Button
+                      variant="default"
+                      className="bg-green-600 hover:bg-green-700"
+                      onClick={() => saveAssignmentData(true)}
+                      disabled={isSubmitting || timeUp || isPreview}
+                    >
+                      {isSubmitting ? (
+                        <><Spinner className="h-4 w-4 mr-2" />Submitting...</>
+                      ) : (
+                        "Yes, Submit"
+                      )}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         </Card>

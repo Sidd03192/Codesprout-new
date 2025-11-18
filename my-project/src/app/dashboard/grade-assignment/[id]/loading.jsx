@@ -1,4 +1,4 @@
-import { Spinner } from "@heroui/react";
+import { Spinner } from "@/components/ui/spinner";
 import Image from "next/image";
 export default function Loading() {
   return (

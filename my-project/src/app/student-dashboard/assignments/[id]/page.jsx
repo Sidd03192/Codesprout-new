@@ -6,7 +6,7 @@ import {
   fetchStudentData,
   saveAssignment,
 } from "../../api";
-import { Spinner } from "@heroui/react";
+import { Spinner } from "@/components/ui/spinner";
 import { createClient } from "../../../../../utils/supabase/client.jsx";
 
 // Error Boundary Component

@@ -2,23 +2,19 @@
 import { redirect } from "next/navigation";
 import { createClient } from "../../../../utils/supabase/client";
 const supabase = createClient();
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import {
-  Button,
-  Input,
-  Checkbox,
-  Link,
-  Form,
-  Divider,
-  Alert,
-  Card,
-} from "@heroui/react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Spinner } from "@/components/ui/spinner";
 import { Icon } from "@iconify/react";
-import { Spinner } from "@heroui/react";
 import Image from "next/image";
+import Link from "next/link";
 
-export default function AuthForm() {
+function AuthFormContent() {
   const searchParams = useSearchParams();
   const [isSignUp, setIsSignUp] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
@@ -311,29 +307,29 @@ export default function AuthForm() {
 
   return (
     <div className="relative w-full h-full">
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50">
-        <Alert
-          color={alertType}
-          description={alertDescription}
-          isVisible={alertVisible}
-          title={alertTitle}
-          variant="solid"
-          onClose={() => setAlertVisible(false)}
-          endContent={
-            alertType === "success" ? (
-              <Button
-                radius="sm"
-                color="success"
-                size="sm"
-                variant="flat"
-                onClick={() => window.open("https://mail.google.com", "_blank")}
-              >
-                Verify
-              </Button>
-            ) : null
-          }
-        />
-      </div>
+      {alertVisible && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 max-w-md w-full">
+          <Alert
+            variant={alertType === "danger" ? "destructive" : alertType === "success" ? "success" : "default"}
+            onClose={() => setAlertVisible(false)}
+          >
+            <AlertTitle>{alertTitle}</AlertTitle>
+            <AlertDescription>
+              {alertDescription}
+              {alertType === "success" && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="ml-4 mt-2"
+                  onClick={() => window.open("https://mail.google.com", "_blank")}
+                >
+                  Verify
+                </Button>
+              )}
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
 
       <div className="flex h-full w-full items-center justify-center px-4">
         <div className="flex w-full max-w-sm flex-col gap-4 rounded-large">
@@ -369,69 +365,77 @@ export default function AuthForm() {
             )}
           </div>
 
-          <Form
+          <form
             className="flex flex-col gap-3"
-            validationBehavior="native"
             onSubmit={handleSubmit}
           >
-            <Input
-              isRequired
-              label="Email Address"
-              name="email"
-              placeholder="Enter your email"
-              type="email"
-              variant="bordered"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
+            <div className="space-y-2">
+              <label htmlFor="email" className="text-sm font-medium">Email Address *</label>
+              <Input
+                required
+                id="email"
+                name="email"
+                placeholder="Enter your email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
 
-            <Input
-              isRequired
-              endContent={
-                <button type="button" onClick={toggleVisibility}>
+            <div className="space-y-2">
+              <label htmlFor="password" className="text-sm font-medium">Password *</label>
+              <div className="relative">
+                <Input
+                  required
+                  id="password"
+                  name="password"
+                  placeholder="Enter your password"
+                  type={isVisible ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={toggleVisibility}
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                >
                   {isVisible ? (
                     <Icon
-                      className="pointer-events-none text-2xl text-default-400"
+                      className="text-2xl text-muted-foreground"
                       icon="solar:eye-closed-linear"
                     />
                   ) : (
                     <Icon
-                      className="pointer-events-none text-2xl text-default-400"
+                      className="text-2xl text-muted-foreground"
                       icon="solar:eye-bold"
                     />
                   )}
                 </button>
-              }
-              validate={validatePassword}
-              onChange={(e) => setPassword(e.target.value)}
-              value={password}
-              label="Password"
-              name="password"
-              placeholder="Enter your password"
-              type={isVisible ? "text" : "password"}
-              variant="bordered"
-            />
+              </div>
+            </div>
 
             {isSignUp && (
-              <Input
-                isRequired
-                label="Confirm Password"
-                name="confirmPassword"
-                placeholder="Confirm your password"
-                type={isVisible ? "text" : "password"}
-                variant="bordered"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                validate={validateConfirmPassword}
-              />
+              <div className="space-y-2">
+                <label htmlFor="confirmPassword" className="text-sm font-medium">Confirm Password *</label>
+                <Input
+                  required
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  placeholder="Confirm your password"
+                  type={isVisible ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+              </div>
             )}
 
             <div className="flex w-full items-center justify-between px-1 py-2">
-              <Checkbox name="remember" size="sm">
-                Remember me
-              </Checkbox>
+              <div className="flex items-center space-x-2">
+                <Checkbox id="remember" name="remember" />
+                <label htmlFor="remember" className="text-sm">Remember me</label>
+              </div>
               {!isSignUp && (
-                <Link className="text-default-500" href="#" size="sm">
+                <Link className="text-sm text-muted-foreground hover:text-primary" href="#">
                   Forgot password?
                 </Link>
               )}
@@ -465,51 +469,66 @@ export default function AuthForm() {
             )}
 
             <Button
-              radius="sm"
               className="w-full"
-              color="primary"
               type="submit"
-              isLoading={loading}
-              spinner={<Spinner />}
+              disabled={loading}
             >
-              {isSignUp ? "Sign Up" : "Sign In"}
+              {loading ? (
+                <>
+                  <Spinner size="sm" className="mr-2" />
+                  {isSignUp ? "Signing Up..." : "Signing In..."}
+                </>
+              ) : (
+                isSignUp ? "Sign Up" : "Sign In"
+              )}
             </Button>
-          </Form>
+          </form>
 
           <div className="flex items-center gap-4 py-2">
-            <Divider className="flex-1" />
-            <p className="shrink-0 text-tiny text-default-500">OR</p>
-            <Divider className="flex-1" />
+            <Separator className="flex-1" />
+            <p className="shrink-0 text-sm text-muted-foreground">OR</p>
+            <Separator className="flex-1" />
           </div>
 
           <div className="flex flex-col gap-2">
             <Button
-              radius="sm"
-              onPress={signInWithGoogle}
-              startContent={<Icon icon="flat-color-icons:google" width={24} />}
-              variant="ghost"
+              onClick={signInWithGoogle}
+              variant="outline"
+              className="w-full"
             >
+              <Icon icon="flat-color-icons:google" width={24} className="mr-2" />
               Continue with Google
             </Button>
             <Button
-              radius="sm"
-              startContent={<Icon icon="fe:github" width={24} />}
-              variant="bordered"
+              variant="outline"
+              className="w-full"
             >
+              <Icon icon="fe:github" width={24} className="mr-2" />
               Continue with GitHub
             </Button>
           </div>
 
-          <p className="text-center text-small">
+          <p className="text-center text-sm">
             {isSignUp
               ? "Already have an account?"
               : "Need to create an account?"}{" "}
-            <Link onClick={() => setIsSignUp(!isSignUp)} href="#" size="sm">
+            <button
+              onClick={() => setIsSignUp(!isSignUp)}
+              className="text-primary hover:underline"
+            >
               {isSignUp ? "Sign In" : "Sign Up"}
-            </Link>
+            </button>
           </p>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AuthForm() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Spinner /></div>}>
+      <AuthFormContent />
+    </Suspense>
   );
 }

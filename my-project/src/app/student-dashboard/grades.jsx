@@ -1,23 +1,8 @@
 import React from "react";
-import {
-  Card,
-  CardBody,
-  CardHeader,
-  Table,
-  TableHeader,
-  TableColumn,
-  TableBody,
-  TableRow,
-  TableCell,
-  Dropdown,
-  DropdownTrigger,
-  DropdownMenu,
-  DropdownItem,
-  Button,
-  Input,
-  Chip,
-  Progress,
-} from "@heroui/react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import { Icon } from "@iconify/react";
 
 export const StudentGrades = () => {
@@ -145,7 +130,7 @@ export const StudentGrades = () => {
     <div className="space-y-6">
       {/* GPA Card */}
       <Card className="border border-divider">
-        <CardBody className="flex flex-col md:flex-row items-center justify-between">
+        <CardContent className="flex flex-col md:flex-row items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="rounded-full p-4 bg-success-100 text-success">
               <Icon icon="lucide:award" className="text-2xl" />
@@ -161,7 +146,7 @@ export const StudentGrades = () => {
               {totalCredits} Credits
             </p>
           </div>
-        </CardBody>
+        </CardContent>
       </Card>
 
       {/* Grades Table */}
@@ -178,7 +163,7 @@ export const StudentGrades = () => {
             </Button>
           </div>
         </CardHeader>
-        <CardBody>
+        <CardContent>
           <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6">
             <Input
               placeholder="Search courses..."
@@ -216,9 +201,9 @@ export const StudentGrades = () => {
                 key={course.id} 
                 className="border border-divider overflow-hidden"
                 isPressable
-                onPress={() => setExpandedCourse(expandedCourse === course.id ? null : course.id)}
+                onClick={() => setExpandedCourse(expandedCourse === course.id ? null : course.id)}
               >
-                <CardBody>
+                <CardContent>
                   <div className="flex flex-col sm:flex-row justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
@@ -286,11 +271,11 @@ export const StudentGrades = () => {
                       </Table>
                     </div>
                   )}
-                </CardBody>
+                </CardContent>
               </Card>
             ))} */}
           </div>
-        </CardBody>
+        </CardContent>
       </Card>
     </div>
   );

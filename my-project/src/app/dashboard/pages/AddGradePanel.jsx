@@ -1,17 +1,9 @@
 import React from "react";
-import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Button,
-  Select,
-  SelectItem,
-  Input,
-  Card,
-  CardBody,
-} from "@heroui/react";
+import { Dialog, DialogContent, DialogHeader, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Select, SelectItem } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
 
 export const AddGradePanel = ({ isOpen, onClose, students, classes }) => {
   const [selectedStudent, setSelectedStudent] = React.useState("");
@@ -37,10 +29,10 @@ export const AddGradePanel = ({ isOpen, onClose, students, classes }) => {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="2xl">
-      <ModalContent>
-        <ModalHeader className="flex flex-col gap-1">Add Grade</ModalHeader>
-        <ModalBody>
+    <Dialog open={isOpen} onOpenChange={onClose} size="2xl">
+      <DialogContent>
+        <DialogHeader className="flex flex-col gap-1">Add Grade</DialogHeader>
+        <DialogDescription>
           <div className="flex gap-4">
             <div className="flex-grow space-y-4">
               <Select
@@ -84,7 +76,7 @@ export const AddGradePanel = ({ isOpen, onClose, students, classes }) => {
             </div>
 
             <Card className="w-64">
-              <CardBody>
+              <CardContent>
                 <h3 className="text-lg font-semibold mb-4">Enter Grade</h3>
                 <Input
                   type="number"
@@ -93,19 +85,19 @@ export const AddGradePanel = ({ isOpen, onClose, students, classes }) => {
                   value={grade}
                   onValueChange={setGrade}
                 />
-              </CardBody>
+              </CardContent>
             </Card>
           </div>
-        </ModalBody>
-        <ModalFooter>
-          <Button color="danger" variant="light" onPress={onClose}>
+        </DialogDescription>
+        <DialogFooter>
+          <Button color="danger" variant="light" onClick={onClose}>
             Cancel
           </Button>
-          <Button color="primary" onPress={handleSubmit}>
+          <Button color="primary" onClick={handleSubmit}>
             Save Grade
           </Button>
-        </ModalFooter>
-      </ModalContent>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };

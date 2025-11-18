@@ -2,15 +2,10 @@ import React from "react";
 import Editor from "@monaco-editor/react";
 import { Icon } from "@iconify/react";
 import Countdown from "react-countdown";
-import {
-  Card,
-  Button,
-  Tabs,
-  Tab,
-  Select,
-  SelectItem,
-  Tooltip,
-} from "@heroui/react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectItem } from "@/components/ui/select";
 import { RotateCcw, Settings, Save, Play, CloudUpload } from "lucide-react";
 
 export const AssignmentPreview = ({ assignment, onClose }) => {
@@ -42,7 +37,7 @@ export const AssignmentPreview = ({ assignment, onClose }) => {
         isIconOnly
         size="sm"
         variant="light"
-        onPress={handleCloseBanner}
+        onClick={handleCloseBanner}
         className="ml-1 text-white hover:bg-white/10"
       >
         <Icon icon="lucide:x" className="text-white text-sm" />
@@ -53,7 +48,7 @@ export const AssignmentPreview = ({ assignment, onClose }) => {
       <Card className="w-full max-w-7xl mx-auto h-[90vh] flex flex-col bg-zinc-900 text-white rounded-xl overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-black/20">
           <h2 className="text-xl font-semibold">{title}</h2>
-          <Button isIconOnly variant="light" onPress={onClose}>
+          <Button isIconOnly variant="light" onClick={onClose}>
             <Icon icon="lucide:x" className="text-white" />
           </Button>
         </div>

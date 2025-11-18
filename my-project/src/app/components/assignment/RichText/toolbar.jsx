@@ -1,19 +1,13 @@
 // Toolbar.jsx
 import React, { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
-  Button,
-  Tooltip,
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-  Input,
-} from "@heroui/react";
-import {
-  Dropdown,
   DropdownMenu,
-  DropdownTrigger,
-  DropdownItem,
-} from "@heroui/react";
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { WandSparkles } from "lucide-react";
 import { Icon } from "@iconify/react";
 
@@ -250,7 +244,7 @@ export const Toolbar = ({ editor }) => {
           color={
             editor.isActive("heading", { level: 1 }) ? "primary" : "default"
           }
-          onPress={() =>
+          onClick={() =>
             editor.chain().focus().toggleHeading({ level: 1 }).run()
           }
           aria-label="Heading 1"
@@ -268,7 +262,7 @@ export const Toolbar = ({ editor }) => {
           color={
             editor.isActive("heading", { level: 2 }) ? "primary" : "default"
           }
-          onPress={() =>
+          onClick={() =>
             editor.chain().focus().toggleHeading({ level: 2 }).run()
           }
           aria-label="Heading 2"
@@ -285,7 +279,7 @@ export const Toolbar = ({ editor }) => {
           color={
             editor.isActive("heading", { level: 3 }) ? "primary" : "default"
           }
-          onPress={() =>
+          onClick={() =>
             editor.chain().focus().toggleHeading({ level: 2 }).run()
           }
           aria-label="Heading 2"
@@ -302,7 +296,7 @@ export const Toolbar = ({ editor }) => {
           size="sm"
           variant={editor.isActive("bold") ? "solid" : "light"}
           color={editor.isActive("bold") ? "primary" : "default"}
-          onPress={() => editor.chain().focus().toggleBold().run()}
+          onClick={() => editor.chain().focus().toggleBold().run()}
           aria-label="Bold"
         >
           <Icon icon="lucide:bold" className="text-lg" />
@@ -316,7 +310,7 @@ export const Toolbar = ({ editor }) => {
           size="sm"
           variant={editor.isActive("italic") ? "solid" : "light"}
           color={editor.isActive("italic") ? "primary" : "default"}
-          onPress={() => editor.chain().focus().toggleItalic().run()}
+          onClick={() => editor.chain().focus().toggleItalic().run()}
           aria-label="Italic"
         >
           <Icon icon="lucide:italic" className="text-lg" />
@@ -330,7 +324,7 @@ export const Toolbar = ({ editor }) => {
           size="sm"
           variant={editor.isActive("underline") ? "solid" : "light"}
           color={editor.isActive("underline") ? "primary" : "default"}
-          onPress={() => editor.chain().focus().toggleUnderline().run()}
+          onClick={() => editor.chain().focus().toggleUnderline().run()}
           aria-label="Underline"
         >
           <Icon icon="lucide:underline" className="text-lg" />
@@ -344,7 +338,7 @@ export const Toolbar = ({ editor }) => {
           size="sm"
           variant={editor.isActive("superscript") ? "solid" : "light"}
           color={editor.isActive("superscript") ? "primary" : "default"}
-          onPress={() => editor.chain().focus().toggleSuperscript().run()}
+          onClick={() => editor.chain().focus().toggleSuperscript().run()}
           aria-label="Superscript"
         >
           <Icon icon="lucide:superscript" className="text-lg" />
@@ -415,7 +409,7 @@ export const Toolbar = ({ editor }) => {
               value={linkUrl}
               onValueChange={setLinkUrl}
             />
-            <Button size="sm" color="primary" onPress={addLink}>
+            <Button size="sm" color="primary" onClick={addLink}>
               {editor.isActive("link") ? "Update Link" : "Add Link"}
             </Button>
           </div>
@@ -429,7 +423,7 @@ export const Toolbar = ({ editor }) => {
           size="sm"
           variant={editor.isActive("bulletList") ? "solid" : "light"}
           color={editor.isActive("bulletList") ? "primary" : "default"}
-          onPress={() => editor.chain().focus().toggleBulletList().run()}
+          onClick={() => editor.chain().focus().toggleBulletList().run()}
           aria-label="Bullet List"
         >
           <Icon icon="lucide:list" className="text-lg" />
@@ -444,7 +438,7 @@ export const Toolbar = ({ editor }) => {
           size="sm"
           variant={editor.isActive("codeBlock") ? "solid" : "light"}
           color={editor.isActive("codeBlock") ? "primary" : "default"}
-          onPress={() => editor.chain().focus().toggleCodeBlock().run()}
+          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
           aria-label="Code Block"
         >
           <Icon icon="lucide:code" className="text-lg" />
@@ -467,7 +461,7 @@ export const Toolbar = ({ editor }) => {
               value={imageUrl}
               onValueChange={setImageUrl}
             />
-            <Button size="sm" color="primary" onPress={addImage}>
+            <Button size="sm" color="primary" onClick={addImage}>
               Add Image
             </Button>
           </div>
@@ -479,7 +473,7 @@ export const Toolbar = ({ editor }) => {
         <Button
           isIconOnly
           size="sm"
-          onPress={enhanceWithAI}
+          onClick={enhanceWithAI}
           variant={"light"}
           color={"default"}
           aria-label="Enhance with AI"
@@ -506,7 +500,7 @@ export const Toolbar = ({ editor }) => {
             <Button
               isIconOnly
               size="sm"
-              onPress={acceptChanges}
+              onClick={acceptChanges}
               variant="light"
               color="success"
               aria-label="Accept Changes"
@@ -519,7 +513,7 @@ export const Toolbar = ({ editor }) => {
             <Button
               isIconOnly
               size="sm"
-              onPress={undoChanges}
+              onClick={undoChanges}
               variant="light"
               color="danger"
               aria-label="Undo Changes"
@@ -528,7 +522,7 @@ export const Toolbar = ({ editor }) => {
             </Button>
           </Tooltip>
 
-          <Popover isOpen={showFollowUp} onOpenChange={setShowFollowUp}>
+          <Popover open={showFollowUp} onOpenChange={setShowFollowUp}>
             <PopoverTrigger>
               <Button
                 isIconOnly
@@ -536,7 +530,7 @@ export const Toolbar = ({ editor }) => {
                 variant="light"
                 color="primary"
                 aria-label="Follow-up Question"
-                onPress={() => setShowFollowUp(true)}
+                onClick={() => setShowFollowUp(true)}
               >
                 <Icon icon="lucide:message-circle" className="text-lg" />
               </Button>
@@ -560,7 +554,7 @@ export const Toolbar = ({ editor }) => {
                   <Button
                     size="sm"
                     color="primary"
-                    onPress={handleFollowUp}
+                    onClick={handleFollowUp}
                     isDisabled={!followUpInput.trim() || isAILoading}
                     isLoading={isAILoading}
                     className="flex-1"
@@ -570,7 +564,7 @@ export const Toolbar = ({ editor }) => {
                   <Button
                     size="sm"
                     variant="light"
-                    onPress={() => setShowFollowUp(false)}
+                    onClick={() => setShowFollowUp(false)}
                     className="flex-1"
                   >
                     Cancel

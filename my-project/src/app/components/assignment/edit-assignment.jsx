@@ -2,29 +2,15 @@
 import { useRouter } from "next/navigation";
 import { createClient } from "../../../../utils/supabase/client";
 const supabase = createClient();
-import {
-  Button,
-  Card,
-  Checkbox,
-  Divider,
-  Dropdown,
-  DropdownItem,
-  DropdownMenu,
-  DropdownTrigger,
-  Input,
-  ScrollShadow,
-  Select,
-  SelectItem,
-  Tabs,
-  Tab,
-  Textarea,
-  DatePicker,
-  Form,
-  Tooltip,
-  form,
-  Spinner,
-  addToast,
-} from "@heroui/react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Select, SelectItem } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { Spinner } from "@/components/ui/spinner";
 import React, { useEffect, useCallback, useRef } from "react";
 import {
   Code,
@@ -280,7 +266,7 @@ export default function EditAssignmentPage({
 
       if (updateError) {
         console.error("Error updating assignment:", updateError);
-        addToast({
+        toast({
           title: "Error",
           description: "Failed to update assignment.",
           color: "danger",
@@ -290,7 +276,7 @@ export default function EditAssignmentPage({
         return;
       }
 
-      addToast({
+      toast({
         title: "Updated Successfully",
         description: "Assignment was updated.",
         color: "success",
@@ -465,7 +451,7 @@ export default function EditAssignmentPage({
                         className="mb-3"
                         color="primary"
                         variant="flat"
-                        onPress={handleSelectAllStudents}
+                        onClick={handleSelectAllStudents}
                       >
                         {students.length === formData.selectedStudentIds.length
                           ? "Unselect All"
@@ -548,7 +534,7 @@ export default function EditAssignmentPage({
                     variant="flat"
                     color="primary"
                     className="min-w-[100px] "
-                    onPress={triggerFileUpload}
+                    onClick={triggerFileUpload}
                   >
                     <Icon icon="lucide:upload" className="" />
                     Upload
@@ -564,7 +550,7 @@ export default function EditAssignmentPage({
                     variant="flat"
                     color="success"
                     className="min-w-[100px]"
-                    onPress={runCode}
+                    onClick={runCode}
                     isDisabled={isRunning}
                   >
                     <Icon icon="lucide:play" />
@@ -826,7 +812,7 @@ export default function EditAssignmentPage({
           </Card>
 
           <div className="flex justify-between">
-            <Button size="lg" variant="flat" onPress={handlePreview}>
+            <Button size="lg" variant="flat" onClick={handlePreview}>
               See Preview
             </Button>
 
@@ -865,7 +851,7 @@ export default function EditAssignmentPage({
         {showPreviewModal && assignmentPreviewData && (
           <AssignmentPreview
             assignment={assignmentPreviewData}
-            onClose={() => setShowPreviewModal(false)}
+            onOpenChange={() => setShowPreviewModal(false)}
           />
         )}
       </main>

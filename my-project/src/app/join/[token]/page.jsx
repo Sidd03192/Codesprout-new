@@ -2,15 +2,9 @@
 
 import React, { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Card,
-  CardBody,
-  CardHeader,
-  Button,
-  Spinner,
-  Alert,
-  Chip,
-} from "@heroui/react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { Icon } from "@iconify/react";
 import { createClient } from "../../../../utils/supabase/client";
 
@@ -134,12 +128,12 @@ export default function JoinClassroomPage({ params }) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
         <Card className="w-full max-w-md">
-          <CardBody className="flex flex-col items-center gap-4 py-8">
+          <CardContent className="flex flex-col items-center gap-4 py-8">
             <Spinner size="lg" color="primary" />
             <p className="text-center text-foreground-600">
               Validating join link...
             </p>
-          </CardBody>
+          </CardContent>
         </Card>
       </div>
     );
@@ -162,18 +156,18 @@ export default function JoinClassroomPage({ params }) {
               </h1>
             </div>
           </CardHeader>
-          <CardBody className="text-center space-y-4">
+          <CardContent className="text-center space-y-4">
             <Alert color="danger" variant="flat">
               {error}
             </Alert>
             <Button
               color="primary"
               variant="flat"
-              onPress={() => router.push("/")}
+              onClick={() => router.push("/")}
             >
               Go to Homepage
             </Button>
-          </CardBody>
+          </CardContent>
         </Card>
       </div>
     );
@@ -195,7 +189,7 @@ export default function JoinClassroomPage({ params }) {
               </Chip>
             </div>
           </CardHeader>
-          <CardBody className="space-y-4">
+          <CardContent className="space-y-4">
             <div className="text-center space-y-2">
               <p className="text-foreground-600">
                 You've been invited to join <strong>{classData?.name}</strong>
@@ -210,7 +204,7 @@ export default function JoinClassroomPage({ params }) {
                 color="primary"
                 className="w-full"
                 size="lg"
-                onPress={handleSignUp}
+                onClick={handleSignUp}
                 startContent={<Icon icon="lucide:user-plus" />}
               >
                 Create Account & Join
@@ -221,7 +215,7 @@ export default function JoinClassroomPage({ params }) {
                 variant="bordered"
                 className="w-full"
                 size="lg"
-                onPress={handleSignUp}
+                onClick={handleSignUp}
                 startContent={<Icon icon="lucide:log-in" />}
               >
                 Sign In & Join
@@ -233,7 +227,7 @@ export default function JoinClassroomPage({ params }) {
                 By joining, you'll be automatically enrolled in this classroom
               </p>
             </div>
-          </CardBody>
+          </CardContent>
         </Card>
       </div>
     );
@@ -254,7 +248,7 @@ export default function JoinClassroomPage({ params }) {
             </Chip>
           </div>
         </CardHeader>
-        <CardBody className="text-center space-y-4">
+        <CardContent className="text-center space-y-4">
           {joining ? (
             <>
               <Spinner size="lg" color="primary" />
@@ -271,14 +265,14 @@ export default function JoinClassroomPage({ params }) {
                 color="primary"
                 size="lg"
                 className="w-full"
-                onPress={handleJoinClassroom}
+                onClick={handleJoinClassroom}
                 startContent={<Icon icon="lucide:user-check" />}
               >
                 Join Classroom
               </Button>
             </>
           )}
-        </CardBody>
+        </CardContent>
       </Card>
     </div>
   );

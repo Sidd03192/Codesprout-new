@@ -1,31 +1,15 @@
 "use client";
 
+import { useDisclosure } from "@/hooks/useDisclosure";
 import React, { useEffect, useState } from "react";
-import {
-  Card,
-  CardBody,
-  CardHeader,
-  Tabs,
-  Tab,
-  Avatar,
-  Button,
-  Chip,
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Input,
-  useDisclosure,
-  Select,
-  SelectItem,
-  Form,
-  Autocomplete,
-  AutocompleteItem,
-  addToast,
-  Spinner,
-  Snippet,
-} from "@heroui/react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Avatar } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Select, SelectItem } from "@/components/ui/select";
+import { Spinner } from "@/components/ui/spinner";
 import { Icon } from "@iconify/react";
 import { BookOpenCheck } from "lucide-react";
 import { createClient } from "../../../../utils/supabase/client";
@@ -88,7 +72,7 @@ export const Classroom = ({ session, classes }) => {
         );
       } else {
         console.error("Failed to fetch students:", result.error);
-        addToast({
+        toast({
           title: "Error",
           description:
             typeof result.error === "string"
@@ -102,7 +86,7 @@ export const Classroom = ({ session, classes }) => {
     } catch (error) {
       console.error("Error fetching students:", error.message || error);
       if (addToast && typeof addToast === "function") {
-        addToast({
+        toast({
           title: "Error",
           description: "Failed to fetch enrolled students",
           color: "danger",
@@ -127,7 +111,7 @@ export const Classroom = ({ session, classes }) => {
       );
 
       if (result.success) {
-        addToast({
+        toast({
           title: "Success",
           description: "Student removed from classroom successfully",
           color: "success",
@@ -146,7 +130,7 @@ export const Classroom = ({ session, classes }) => {
         setDeleteStudentModal(false);
         setStudentToDelete(null);
       } else {
-        addToast({
+        toast({
           title: "Error",
           description:
             typeof result.error === "string"
@@ -159,7 +143,7 @@ export const Classroom = ({ session, classes }) => {
       }
     } catch (error) {
       console.error("Error removing student:", error.message || error);
-      addToast({
+      toast({
         title: "Error",
         description: error.message || "An unexpected error occurred",
         color: "danger",
@@ -286,7 +270,7 @@ export const Classroom = ({ session, classes }) => {
       const result = await generateJoinLink(classId);
 
       if (!result.success) {
-        addToast({
+        toast({
           title: "Failed to Generate Link",
           description: result.error || "An error occurred",
           color: "danger",
@@ -303,7 +287,7 @@ export const Classroom = ({ session, classes }) => {
       await copyToClipboard(result.join_url);
     } catch (error) {
       console.error("Error generating share link:", error);
-      addToast({
+      toast({
         title: "Error",
         description: "Failed to generate share link",
         color: "danger",
@@ -320,7 +304,7 @@ export const Classroom = ({ session, classes }) => {
       // Check if clipboard API is available (browser-only)
       if (typeof navigator !== "undefined" && navigator.clipboard) {
         await navigator.clipboard.writeText(text);
-        addToast({
+        toast({
           title: "Copied!",
           description: "Link copied to clipboard",
           color: "success",
@@ -350,7 +334,7 @@ export const Classroom = ({ session, classes }) => {
       const data = await response.json();
 
       if (!response.ok) {
-        addToast({
+        toast({
           title: "Delete Failed",
           description: data.error || "Failed to delete classroom",
           color: "danger",
@@ -361,7 +345,7 @@ export const Classroom = ({ session, classes }) => {
       }
 
       // Success - show success message
-      addToast({
+      toast({
         title: "Success",
         description: data.message || "Classroom deleted successfully",
         color: "success",
@@ -384,7 +368,7 @@ export const Classroom = ({ session, classes }) => {
       }
     } catch (error) {
       console.error("Error deleting classroom:", error);
-      addToast({
+      toast({
         title: "Error",
         description:
           "An unexpected error occurred while deleting the classroom",
@@ -454,7 +438,7 @@ export const Classroom = ({ session, classes }) => {
       // Handle case where all attempts failed
       if (!updated) {
         console.error("Supabase error:", lastError);
-        addToast({
+        toast({
           title: "Unexpected Error",
           description: "An unexpected error occurred. Please try again.",
           color: "danger",
@@ -467,7 +451,7 @@ export const Classroom = ({ session, classes }) => {
 
       setIsLoading(false);
       // Success
-      addToast({
+      toast({
         title: "Success",
         placement: "top-center",
 
@@ -478,7 +462,7 @@ export const Classroom = ({ session, classes }) => {
       // toast
     } catch (error) {
       console.error("Unexpected error creating classroom:", error);
-      addToast({
+      toast({
         title: "Unexpected Error",
         description: "An unexpected error occurred. Please try again.",
         color: "danger",
@@ -492,7 +476,7 @@ export const Classroom = ({ session, classes }) => {
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {classes.map((classroom) => (
         <Card key={classroom.id} className="border border-divider">
-          <CardBody>
+          <CardContent>
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-lg font-semibold">{classroom.name}</h3>
               <Chip size="sm" color="primary" variant="flat">
@@ -512,7 +496,7 @@ export const Classroom = ({ session, classes }) => {
                   size="sm"
                   color="primary"
                   variant="flat"
-                  onPress={() => setSelectedClassroom(classroom)}
+                  onClick={() => setSelectedClassroom(classroom)}
                 >
                   View Details
                 </Button>
@@ -521,7 +505,7 @@ export const Classroom = ({ session, classes }) => {
                   color="danger"
                   variant="light"
                   isIconOnly
-                  onPress={() => {
+                  onClick={() => {
                     setClassroomToDelete(classroom);
                     setDeleteModalOpen(true);
                   }}
@@ -530,7 +514,7 @@ export const Classroom = ({ session, classes }) => {
                 </Button>
               </div>
             </div>
-          </CardBody>
+          </CardContent>
         </Card>
       ))}
     </div>
@@ -549,12 +533,12 @@ export const Classroom = ({ session, classes }) => {
             <Icon icon="lucide:users" className="text-lg" />
             <h2 className="text-lg font-medium">Classrooms</h2>
           </div>
-          <Button color="primary" onPress={onOpen}>
+          <Button color="primary" onClick={onOpen}>
             <Icon icon="lucide:plus" className="mr-1" />
             Create Classroom
           </Button>
         </CardHeader>
-        <CardBody>
+        <CardContent>
           {selectedClassroom ? (
             <>
               <div className="flex justify-between items-center mb-4">
@@ -566,7 +550,7 @@ export const Classroom = ({ session, classes }) => {
                     size="sm"
                     color="primary"
                     variant="flat"
-                    onPress={() => generateShareLink(selectedClassroom.id)}
+                    onClick={() => generateShareLink(selectedClassroom.id)}
                     isLoading={generatingShare}
                     startContent={<Icon icon="lucide:share-2" />}
                   >
@@ -576,7 +560,7 @@ export const Classroom = ({ session, classes }) => {
                     size="sm"
                     color="danger"
                     variant="light"
-                    onPress={() => {
+                    onClick={() => {
                       setClassroomToDelete(selectedClassroom);
                       setDeleteModalOpen(true);
                     }}
@@ -587,7 +571,7 @@ export const Classroom = ({ session, classes }) => {
                   <Button
                     size="sm"
                     variant="light"
-                    onPress={() => setSelectedClassroom(null)}
+                    onClick={() => setSelectedClassroom(null)}
                     startContent={<Icon icon="lucide:chevron-left" />}
                   >
                     Back to All Classrooms
@@ -610,7 +594,7 @@ export const Classroom = ({ session, classes }) => {
                   }
                 >
                   <Card>
-                    <CardBody>
+                    <CardContent>
                       {loadingStudents ? (
                         <div className="flex justify-center items-center py-8">
                           <Spinner size="lg" />
@@ -632,7 +616,7 @@ export const Classroom = ({ session, classes }) => {
                                 key={student.student_id}
                                 className="border border-divider"
                               >
-                                <CardBody>
+                                <CardContent>
                                   <div className="flex items-center gap-3">
                                     <Avatar
                                       name={
@@ -660,7 +644,7 @@ export const Classroom = ({ session, classes }) => {
                                             color="danger"
                                             variant="light"
                                             isIconOnly
-                                            onPress={() => {
+                                            onClick={() => {
                                               setStudentToDelete(student);
                                               setDeleteStudentModal(true);
                                             }}
@@ -686,12 +670,12 @@ export const Classroom = ({ session, classes }) => {
                                       </div>
                                     </div>
                                   </div>
-                                </CardBody>
+                                </CardContent>
                               </Card>
                             ))}
                         </div>
                       )}
-                    </CardBody>
+                    </CardContent>
                   </Card>
                 </Tab>
                 <Tab
@@ -704,7 +688,7 @@ export const Classroom = ({ session, classes }) => {
                   }
                 >
                   <Card>
-                    <CardBody className="flex flex-col gap-4">
+                    <CardContent className="flex flex-col gap-4">
                       <div className="flex justify-end">
                         <Button color="primary">
                           <Icon icon="lucide:plus" className="mr-1" />
@@ -717,7 +701,7 @@ export const Classroom = ({ session, classes }) => {
                           key={announcement.id}
                           className="border border-divider"
                         >
-                          <CardBody>
+                          <CardContent>
                             <div className="flex items-start gap-3">
                               <div
                                 className={`p-2 rounded-full ${
@@ -748,10 +732,10 @@ export const Classroom = ({ session, classes }) => {
                                 </p>
                               </div>
                             </div>
-                          </CardBody>
+                          </CardContent>
                         </Card>
                       ))}
-                    </CardBody>
+                    </CardContent>
                   </Card>
                 </Tab>
                 <Tab
@@ -764,7 +748,7 @@ export const Classroom = ({ session, classes }) => {
                   }
                 >
                   <Card>
-                    <CardBody className="flex flex-col gap-4">
+                    <CardContent className="flex flex-col gap-4">
                       <div className="flex justify-end">
                         <Button color="primary">
                           <Icon icon="lucide:upload" className="mr-1" />
@@ -778,7 +762,7 @@ export const Classroom = ({ session, classes }) => {
                             key={resource.id}
                             className="border border-divider"
                           >
-                            <CardBody>
+                            <CardContent>
                               <div className="flex items-center gap-3">
                                 <div className="p-3 rounded-md bg-content2">
                                   <Icon
@@ -802,11 +786,11 @@ export const Classroom = ({ session, classes }) => {
                                   </div>
                                 </div>
                               </div>
-                            </CardBody>
+                            </CardContent>
                           </Card>
                         ))}
                       </div>
-                    </CardBody>
+                    </CardContent>
                   </Card>
                 </Tab>
               </Tabs>
@@ -814,21 +798,21 @@ export const Classroom = ({ session, classes }) => {
           ) : (
             renderClassroomOverview()
           )}
-        </CardBody>
+        </CardContent>
       </Card>
 
       {/* Create Classroom Modal */}
 
-      <Modal isOpen={isOpen} onClose={handleClose} size="lg" backdrop="blur">
-        <ModalContent className="w-full">
-          <ModalHeader className="flex border-zinc-800 bg-zinc-900">
+      <Dialog open={isOpen} onOpenChange={handleClose} size="lg" backdrop="blur">
+        <DialogContent className="w-full">
+          <DialogHeader className="flex border-zinc-800 bg-zinc-900">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-3">
                 <BookMarked className="text-2xl" color="white" />
                 <h1 className="text-xl font-semibold">Create Classroom</h1>
               </div>
             </div>
-          </ModalHeader>
+          </DialogHeader>
 
           <div className="bg-gradient-to-br from-[#1e2b22] via-[#1e1f2b] to-[#2b1e2e]  text-zinc-100">
             <main className="mx-auto w-full p-4 pb-5">
@@ -879,7 +863,7 @@ export const Classroom = ({ session, classes }) => {
                     <Button
                       color="primary"
                       size="lg"
-                      onPress={handleCreateClassroom}
+                      onClick={handleCreateClassroom}
                       isLoading={isLoading}
                       spinner={<Spinner size="sm" />}
                     >
@@ -891,23 +875,23 @@ export const Classroom = ({ session, classes }) => {
               )}
             </main>
           </div>
-        </ModalContent>
-      </Modal>
+        </DialogContent>
+      </Dialog>
 
       {/* Share Class Code Modal */}
-      <Modal
-        isOpen={showShareModal}
-        onClose={() => setShowShareModal(false)}
+      <Dialog
+        open={showShareModal}
+        onOpenChange={() => setShowShareModal(false)}
         size="md"
         backdrop="blur"
       >
-        <ModalContent className="w-full">
-          <ModalHeader className="flex border-zinc-800 bg-zinc-900">
+        <DialogContent className="w-full">
+          <DialogHeader className="flex border-zinc-800 bg-zinc-900">
             <div className="flex items-center gap-3">
               <Icon icon="lucide:share-2" className="text-2xl" color="white" />
               <h1 className="text-xl font-semibold">Share Class Code</h1>
             </div>
-          </ModalHeader>
+          </DialogHeader>
 
           <div className="bg-gradient-to-br from-[#1e2b22] via-[#1e1f2b] to-[#2b1e2e] text-zinc-100">
             <main className="mx-auto w-full p-6 pb-8">
@@ -937,14 +921,14 @@ export const Classroom = ({ session, classes }) => {
                 <div className="flex gap-2 justify-center">
                   <Button
                     color="primary"
-                    onPress={() => copyToClipboard(shareLink)}
+                    onClick={() => copyToClipboard(shareLink)}
                     startContent={<Icon icon="lucide:copy" />}
                   >
                     Copy Link
                   </Button>
                   <Button
                     variant="light"
-                    onPress={() => setShowShareModal(false)}
+                    onClick={() => setShowShareModal(false)}
                   >
                     Close
                   </Button>
@@ -952,22 +936,22 @@ export const Classroom = ({ session, classes }) => {
               </div>
             </main>
           </div>
-        </ModalContent>
-      </Modal>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Classroom Confirmation Modal */}
-      <Modal
-        isOpen={deleteModalOpen}
-        onClose={() => setDeleteModalOpen(false)}
+      <Dialog
+        open={deleteModalOpen}
+        onOpenChange={() => setDeleteModalOpen(false)}
         size="sm"
       >
-        <ModalContent>
-          <ModalHeader className="flex flex-col gap-1">
+        <DialogContent>
+          <DialogHeader className="flex flex-col gap-1">
             <h2 className="text-lg font-semibold text-danger">
               Delete Classroom
             </h2>
-          </ModalHeader>
-          <ModalBody>
+          </DialogHeader>
+          <DialogDescription>
             <div className="space-y-3">
               <p>
                 Are you sure you want to delete{" "}
@@ -994,11 +978,11 @@ export const Classroom = ({ session, classes }) => {
                 </div>
               </div>
             </div>
-          </ModalBody>
-          <ModalFooter>
+          </DialogDescription>
+          <DialogFooter>
             <Button
               variant="light"
-              onPress={() => setDeleteModalOpen(false)}
+              onClick={() => setDeleteModalOpen(false)}
               disabled={deleting}
             >
               Cancel
@@ -1006,29 +990,29 @@ export const Classroom = ({ session, classes }) => {
             <Button
               color="danger"
               variant="solid"
-              onPress={handleDeleteClassroom}
+              onClick={handleDeleteClassroom}
               isLoading={deleting}
               disabled={deleting}
             >
               Delete Classroom
             </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Student Confirmation Modal */}
-      <Modal
-        isOpen={deleteStudentModal}
-        onClose={() => setDeleteStudentModal(false)}
+      <Dialog
+        open={deleteStudentModal}
+        onOpenChange={() => setDeleteStudentModal(false)}
         size="sm"
       >
-        <ModalContent>
-          <ModalHeader className="flex flex-col gap-1">
+        <DialogContent>
+          <DialogHeader className="flex flex-col gap-1">
             <h2 className="text-lg font-semibold text-danger">
               Remove Student
             </h2>
-          </ModalHeader>
-          <ModalBody>
+          </DialogHeader>
+          <DialogDescription>
             <div className="space-y-3">
               <p>
                 Are you sure you want to remove{" "}
@@ -1054,11 +1038,11 @@ export const Classroom = ({ session, classes }) => {
                 </div>
               </div>
             </div>
-          </ModalBody>
-          <ModalFooter>
+          </DialogDescription>
+          <DialogFooter>
             <Button
               variant="light"
-              onPress={() => setDeleteStudentModal(false)}
+              onClick={() => setDeleteStudentModal(false)}
               disabled={deletingStudent}
             >
               Cancel
@@ -1066,15 +1050,15 @@ export const Classroom = ({ session, classes }) => {
             <Button
               color="danger"
               variant="solid"
-              onPress={handleRemoveStudent}
+              onClick={handleRemoveStudent}
               isLoading={deletingStudent}
               disabled={deletingStudent}
             >
               Remove Student
             </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

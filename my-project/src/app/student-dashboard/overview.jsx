@@ -1,5 +1,7 @@
 import React from "react";
-import { Card, CardBody, CardHeader, Progress, Avatar } from "@heroui/react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Avatar } from "@/components/ui/avatar";
+import { Progress } from "@/components/ui/progress";
 import { Icon } from "@iconify/react";
 
 export const StudentOverview = () => {
@@ -82,7 +84,7 @@ export const StudentOverview = () => {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat, i) => (
           <Card key={i} className="border border-divider">
-            <CardBody className="flex items-center justify-between">
+            <CardContent className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-foreground-500">{stat.title}</p>
                 <h3 className="text-2xl font-semibold mt-1">{stat.value}</h3>
@@ -91,7 +93,7 @@ export const StudentOverview = () => {
               <div className={`rounded-full p-3 ${stat.color}`}>
                 <Icon icon={stat.icon} className="text-xl" />
               </div>
-            </CardBody>
+            </CardContent>
           </Card>
         ))}
       </div>
@@ -103,7 +105,7 @@ export const StudentOverview = () => {
             <h3 className="text-lg font-medium">Upcoming Assignments</h3>
             <a href="#" className="text-sm text-primary">View All</a>
           </CardHeader>
-          <CardBody>
+          <CardContent>
             <div className="space-y-4">
               {upcomingAssignments.map((assignment, i) => (
                 <div key={i} className="flex items-center justify-between">
@@ -121,7 +123,7 @@ export const StudentOverview = () => {
                 </div>
               ))}
             </div>
-          </CardBody>
+          </CardContent>
         </Card>
 
         {/* Course Progress */}
@@ -130,7 +132,7 @@ export const StudentOverview = () => {
             <h3 className="text-lg font-medium">Course Progress</h3>
             <a href="#" className="text-sm text-primary">Details</a>
           </CardHeader>
-          <CardBody>
+          <CardContent>
             <div className="space-y-5">
               {courseProgress.map((course, i) => (
                 <div key={i} className="space-y-2">
@@ -149,7 +151,7 @@ export const StudentOverview = () => {
                 </div>
               ))}
             </div>
-          </CardBody>
+          </CardContent>
         </Card>
       </div>
 
@@ -159,11 +161,11 @@ export const StudentOverview = () => {
           <h3 className="text-lg font-medium">Announcements</h3>
           <a href="#" className="text-sm text-primary">View All</a>
         </CardHeader>
-        <CardBody>
+        <CardContent>
           <div className="space-y-4">
             {announcements.map((announcement) => (
               <Card key={announcement.id} className="border border-divider">
-                <CardBody>
+                <CardContent>
                   <div className="flex items-start gap-3">
                     <Avatar src={announcement.authorAvatar} className="h-10 w-10" />
                     <div className="flex-1">
@@ -175,11 +177,11 @@ export const StudentOverview = () => {
                       <p className="mt-2 text-xs text-foreground-500">Posted by: {announcement.author}</p>
                     </div>
                   </div>
-                </CardBody>
+                </CardContent>
               </Card>
             ))}
           </div>
-        </CardBody>
+        </CardContent>
       </Card>
     </div>
   );

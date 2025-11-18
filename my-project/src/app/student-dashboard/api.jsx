@@ -25,7 +25,7 @@ export async function getAssignmentsData(student_id) {
     .gte("start_date", "now()")
     .order("start_date", { ascending: false });
 
-  console.log("Visisble assignments:", visibleAssignments);
+  console.log("Visible assignments:", visibleAssignments);
   if (visibleError) {
     console.error("Error fetching visible assignments:", visibleError);
     return { error: "Could not fetch visible assignments." };
@@ -157,7 +157,7 @@ export const joinClassroom = async (joinCode, userId) => {
 
   const { error: insertError } = await supabase.from("enrollments").insert({
     student_id: userId,
-    enrolled_at: new Date(),
+    enrolled_at: new Date().toISOString(),
     class_id: course.id,
     full_name: userName,
     email: userEmail,
@@ -341,7 +341,7 @@ export const saveAssignment = async (
     }
   }
 
-  // shoudl create a new row in assignment_student as a JSON and put all grading relating things in there to make the schema more simple.
+  // should create a new row in assignment_student as a JSON and put all grading relating things in there to make the schema more simple.
   const { error } = await supabase
     .from("assignment_students")
     .update({
@@ -394,6 +394,11 @@ Evaluate each criterion and provide the results as a JSON array.`;
       temperature: 0.3,
       max_tokens: 1000,
     });
+
+    if (!response.choices || response.choices.length === 0) {
+      console.error("No response from AI");
+      return null;
+    }
 
     const aiResponse = response.choices[0].message.content;
 
@@ -448,7 +453,7 @@ const structureTestingData = (
   requirementsResults = []
 ) => {
   if (!data || !data.testResults) {
-    return "null";
+    return null;
   }
 
   return {

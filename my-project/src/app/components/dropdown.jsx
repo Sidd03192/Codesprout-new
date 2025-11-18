@@ -1,6 +1,14 @@
-import {Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Button, cn} from "@heroui/react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { ClipboardPlus } from 'lucide-react';
-import {Code} from "lucide-react";
+import { Code } from "lucide-react";
 export const AddNoteIcon = (props) => {
   return (
     <svg
@@ -112,41 +120,43 @@ export const DeleteDocumentIcon = (props) => {
 };
 
 export default function AssignmentDropdown() {
-  const iconClasses = "text-xl text-default-500 pointer-events-none flex-shrink-0";
+  const iconClasses = "text-xl text-muted-foreground pointer-events-none flex-shrink-0";
 
   return (
-    <Dropdown>
-      <DropdownTrigger>
-        <Button startContent={<ClipboardPlus />} color="primary">Create Assignment</Button>
-      </DropdownTrigger>
-      <DropdownMenu aria-label="Dropdown menu with description" variant="faded">
-        <DropdownItem
-          key="new"
-          description="Creates a timed coding test"
-          shortcut="⌘N"
-          startContent={<Code color="green" />}
-        >
-          Coding Test
-        </DropdownItem>
-        <DropdownItem
-          key="copy"
-          description="Copy the file link"
-          shortcut="⌘C"
-          startContent={<CopyDocumentIcon className={iconClasses} />}
-        >
-          Copy link
-        </DropdownItem>
-        <DropdownItem
-          key="edit"
-          showDivider
-          description="Allows you to edit the file"
-          shortcut="⌘⇧E"
-          startContent={<EditDocumentIcon className={iconClasses} />}
-        >
-          Edit file
-        </DropdownItem>
-        
-      </DropdownMenu>
-    </Dropdown>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button>
+          <ClipboardPlus className="mr-2" />
+          Create Assignment
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        <DropdownMenuItem>
+          <Code color="green" className="mr-2" />
+          <div className="flex flex-col">
+            <span>Coding Test</span>
+            <span className="text-xs text-muted-foreground">Creates a timed coding test</span>
+          </div>
+          <span className="ml-auto text-xs text-muted-foreground">⌘N</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem>
+          <CopyDocumentIcon className={cn(iconClasses, "mr-2")} />
+          <div className="flex flex-col">
+            <span>Copy link</span>
+            <span className="text-xs text-muted-foreground">Copy the file link</span>
+          </div>
+          <span className="ml-auto text-xs text-muted-foreground">⌘C</span>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem>
+          <EditDocumentIcon className={cn(iconClasses, "mr-2")} />
+          <div className="flex flex-col">
+            <span>Edit file</span>
+            <span className="text-xs text-muted-foreground">Allows you to edit the file</span>
+          </div>
+          <span className="ml-auto text-xs text-muted-foreground">⌘⇧E</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

@@ -1,10 +1,61 @@
 @import "tailwindcss";
-@plugin '../../hero.js';
-/* Note: You may need to change the path to fit your project structure */
-@source '../../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}';
-@custom-variant dark (&:is(.dark *));
-
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 84 81% 69%; /* lime-200 #BEF264 */
+    --primary-foreground: 0 0% 0%;
+    --secondary: 38 92% 50%; /* amber-500 #f59e0b */
+    --secondary-foreground: 0 0% 0%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 84 81% 69%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 0 0% 7.1%; /* #121212 */
+    --foreground: 210 40% 98%;
+    --card: 0 0% 10.2%; /* #1a1a1a */
+    --card-foreground: 210 40% 98%;
+    --popover: 0 0% 10.2%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 84 81% 69%; /* lime-200 #BEF264 */
+    --primary-foreground: 0 0% 0%;
+    --secondary: 38 92% 50%; /* amber-500 #f59e0b */
+    --secondary-foreground: 0 0% 0%;
+    --muted: 0 0% 14.1%; /* #242424 */
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 0 0% 18%; /* #2e2e2e */
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 0 0% 22%; /* #383838 */
+    --input: 0 0% 22%;
+    --ring: 84 81% 69%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
 
 html {
   scroll-behavior: smooth;
@@ -22,27 +73,26 @@ html {
 
 body {
   font-family: "Inter", sans-serif;
-  @apply bg-background text-foreground;
 }
 
 .sidebar-item {
-  @apply flex items-center gap-3 px-3 py-2.5 rounded-md text-sm text-foreground-500 transition-colors hover:bg-content2 hover:text-foreground-800;
+  @apply flex items-center gap-3 px-3 py-2.5 rounded-md text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground;
 }
 
 .sidebar-item.active {
-  @apply border-1 border-divider  text-foreground-800;
+  @apply border border-border text-foreground;
 }
 
 .sidebar-item-icon {
-  @apply text-foreground-500 text-lg;
+  @apply text-muted-foreground text-lg;
 }
 
 .sidebar-item-badge {
-  @apply ml-auto px-1.5 py-0.5 text-xs rounded-full bg-content3 text-foreground-600;
+  @apply ml-auto px-1.5 py-0.5 text-xs rounded-full bg-muted text-muted-foreground;
 }
 
 .sidebar-item-new {
-  @apply ml-auto px-1.5 py-0.5 text-xs rounded-full bg-content3 text-foreground-600;
+  @apply ml-auto px-1.5 py-0.5 text-xs rounded-full bg-muted text-muted-foreground;
 }
 
 .team-badge {

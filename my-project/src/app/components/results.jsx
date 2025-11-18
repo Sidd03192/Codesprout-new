@@ -1,29 +1,15 @@
 "use client";
+import { useDisclosure } from "@/hooks/useDisclosure";
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { createClient } from "../../../utils/supabase/client";
 import { Rubric } from "./assignment/rubric";
 const supabase = createClient();
-import {
-  Accordion,
-  AccordionItem,
-  Button,
-  Divider,
-  ScrollShadow,
-  Spinner,
-  Textarea,
-  Tooltip,
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  useDisclosure,
-  addToast,
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-  Avatar,
-} from "@heroui/react";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Spinner } from "@/components/ui/spinner";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Avatar } from "@/components/ui/avatar";
 import { Icon } from "@iconify/react";
 import {
   fetchStudentsForAssignment,
@@ -503,7 +489,7 @@ const GradingResults = ({
                 radius="sm"
                 variant="flat"
                 color="secondary"
-                onPress={onOpen}
+                onClick={onOpen}
               >
                 <SquareChartGantt size={16} /> Edit Rubric
               </Button>
@@ -558,7 +544,7 @@ const GradingResults = ({
                   variant="flat"
                   radius="sm"
                   color="primary"
-                  onPress={handleSave}
+                  onClick={handleSave}
                 >
                   <Save size={16} />
                   Save Session
@@ -567,7 +553,7 @@ const GradingResults = ({
                   variant="flat"
                   radius="sm"
                   color="secondary"
-                  onPress={nextStudent}
+                  onClick={nextStudent}
                 >
                   Next
                   <ArrowRight size={16} />
@@ -634,7 +620,7 @@ const StudentScrollSection = ({ students, selected, setSelected }) => {
             <div className="flex gap-4 p-2">
               {students?.map((student, index) => (
                 <Button
-                  onPress={() => setSelected(student)}
+                  onClick={() => setSelected(student)}
                   color={getColor(student.status)}
                   key={index}
                   className="flex-shrink-0 border-2 rounded-full"
@@ -660,7 +646,7 @@ const StudentScrollSection = ({ students, selected, setSelected }) => {
           Graded (9) of 18 students. 8 Did not submit.
         </p>
       </div>
-      <Divider></Divider>
+      <Separator></Separator>
     </div>
   );
 };
@@ -720,7 +706,7 @@ export const Results = ({ editorRef, role, rubric, id, gradingData }) => {
     const result = await updateGrade(submissionsToUpdate, id);
     if (result.success) {
       console.log("successfully updated grades");
-      addToast({
+      toast({
         title: "Updated Grades!",
         description: "You may safely exit this page.",
         status: "success",
@@ -730,7 +716,7 @@ export const Results = ({ editorRef, role, rubric, id, gradingData }) => {
       });
     } else {
       console.error("Error updating grades:", result.error);
-      addToast({
+      toast({
         title: "Failed to Update Grades",
         description: "Please do not exit this page. Report this error",
         status: "danger",
@@ -765,38 +751,38 @@ export const Results = ({ editorRef, role, rubric, id, gradingData }) => {
           onStudentUpdate={handleStudentUpdate} // Pass the new handler
         />
       ) : null}
-      <Modal
-        isOpen={isOpen}
+      <Dialog
+        open={isOpen}
         onOpenChange={onOpenChange}
         size="2xl"
         scrollBehavior="inside"
       >
-        <ModalContent>
+        <DialogContent>
           {(onClose) => (
             <>
-              <ModalHeader className="flex flex-col gap-1">
+              <DialogHeader className="flex flex-col gap-1">
                 Rubric Editor
-              </ModalHeader>
-              <ModalBody>
+              </DialogHeader>
+              <DialogDescription>
                 <Rubric
                   testcases={testcases}
                   students={students}
                   rubric={rubricData.rubric}
                   setRubric={setRubricData}
                 />
-              </ModalBody>
-              <ModalFooter>
-                <Button color="danger" variant="light" onPress={onClose}>
+              </DialogDescription>
+              <DialogFooter>
+                <Button color="danger" variant="light" onClick={onClose}>
                   Close
                 </Button>
-                <Button color="primary" onPress={onClose}>
+                <Button color="primary" onClick={onClose}>
                   Action
                 </Button>
-              </ModalFooter>
+              </DialogFooter>
             </>
           )}
-        </ModalContent>
-      </Modal>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { CodingInterface } from "../components/student-workspace";
 import { useRouter } from "next/navigation";
-import { addToast } from "@heroui/react";
+import { toast } from "sonner";
 
 export default function PreviewPage() {
   const [assignmentData, setAssignmentData] = useState(null);
@@ -17,14 +17,10 @@ export default function PreviewPage() {
       console.log("assignment:", parsedData);
 
       // Show toast notification for preview mode
-      addToast({
-        title: "Preview Mode",
+      toast("Preview Mode", {
         description:
           "You are viewing a preview. This is not published and functionality is limited.",
-        color: "warning",
         duration: 50000,
-        placement: "top-center",
-        variant: "solid",
       });
     } else {
       // Redirect back if no data
@@ -34,7 +30,7 @@ export default function PreviewPage() {
 
   // Disabled save function for preview
   const handleSaveAssignment = async (code, isSubmit) => {
-    addToast({
+    toast({
       title: "Preview Mode",
       description: "Save and submit functionality is disabled in preview mode.",
       color: "warning",

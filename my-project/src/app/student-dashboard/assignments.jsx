@@ -1,34 +1,16 @@
+import { useDisclosure } from "@/hooks/useDisclosure";
 import React from "react";
-import {
-  Card,
-  CardBody,
-  CardHeader,
-  Button,
-  Input,
-  Tabs,
-  Tab,
-  Chip,
-  Progress,
-  Spinner,
-  DropdownMenu,
-} from "@heroui/react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Spinner } from "@/components/ui/spinner";
 import { Icon } from "@iconify/react";
 import Link from "next/link";
 import { RotateCcw } from "lucide-react";
 import { getAssignmentsData } from "./api";
 import { useCallback, useEffect, useState, useMemo } from "react";
-import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  useDisclosure,
-  Dropdown,
-  DropdownTrigger,
-  DropdownContent,
-  DropdownItem,
-} from "@heroui/react";
+import { Dialog, DialogContent, DialogHeader, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { AssignmentCard } from "./components/assignment-card";
 
 export const StudentAssignments = ({
@@ -125,7 +107,7 @@ export const StudentAssignments = ({
             </Button>
           </div>
         </CardHeader>
-        <CardBody>
+        <CardContent>
           <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6 w-full">
             <Input
               placeholder="Search assignments..."
@@ -163,7 +145,7 @@ export const StudentAssignments = ({
                       key={assignment.id}
                       getDueDate={getDueDate}
                       OnOpenChange={onOpenChange}
-                      isOpen={isOpen}
+                      open={isOpen}
                       onOpen={onOpen}
                       isOverDue={isOverDue}
                     />
@@ -191,7 +173,7 @@ export const StudentAssignments = ({
               </div>
             )}
           </div>
-        </CardBody>
+        </CardContent>
       </Card>
     </div>
   );

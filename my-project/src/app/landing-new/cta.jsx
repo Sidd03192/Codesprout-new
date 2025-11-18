@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { Button, Input } from "@heroui/react"; // Assuming this is your button component
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input"; // Assuming this is your button component
 
 // A simple checkmark icon component
 const CheckIcon = ({ className }) => (

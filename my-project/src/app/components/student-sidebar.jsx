@@ -1,7 +1,7 @@
 // Add missing imports
 import React from "react";
 import { Icon } from "@iconify/react";
-import { Avatar } from "@heroui/react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 export const Sidebar = ({
   isCollapsed,
@@ -142,20 +142,28 @@ export const Sidebar = ({
       {/* User Profile */}
       <div className={`mb-6 px-4 ${isCollapsed ? "flex justify-center" : ""}`}>
         {isCollapsed ? (
-          <Avatar
-            src={`https://img.heroui.chat/image/avatar?w=40&h=40&u=${
-              userType === "teacher" ? "teacher1" : "student1"
-            }`}
-            className="h-8 w-8"
-          />
-        ) : (
-          <div className="flex items-center gap-2">
-            <Avatar
+          <Avatar className="h-8 w-8">
+            <AvatarImage
               src={`https://img.heroui.chat/image/avatar?w=40&h=40&u=${
                 userType === "teacher" ? "teacher1" : "student1"
               }`}
-              className="h-10 w-10"
             />
+            <AvatarFallback>
+              {userType === "teacher" ? "JD" : "AJ"}
+            </AvatarFallback>
+          </Avatar>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Avatar className="h-10 w-10">
+              <AvatarImage
+                src={`https://img.heroui.chat/image/avatar?w=40&h=40&u=${
+                  userType === "teacher" ? "teacher1" : "student1"
+                }`}
+              />
+              <AvatarFallback>
+                {userType === "teacher" ? "JD" : "AJ"}
+              </AvatarFallback>
+            </Avatar>
             <div>
               <p className="font-medium">
                 {userType === "teacher" ? "John Doe" : "Alex Johnson"}

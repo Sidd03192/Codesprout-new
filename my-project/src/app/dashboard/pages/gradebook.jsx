@@ -1,20 +1,8 @@
 import React from "react";
-import {
-  Card,
-  CardBody,
-  CardHeader,
-  Button,
-  Input,
-  Chip,
-  Avatar,
-  Dropdown,
-  DropdownTrigger,
-  DropdownMenu,
-  DropdownItem,
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@heroui/react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Avatar } from "@/components/ui/avatar";
 import { Icon } from "@iconify/react";
 import { AddGradePanel } from "./AddGradePanel.jsx";
 
@@ -117,7 +105,7 @@ export const Gradebook = () => {
         </CardHeader>
 
         {/* Remove white background by using bg-transparent */}
-        <CardBody className="bg-transparent">
+        <CardContent className="bg-transparent">
           <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6">
             <Input
               placeholder="Search students..."
@@ -202,7 +190,7 @@ export const Gradebook = () => {
                     <td className="border border-gray-300 px-4 py-2">
                       <div className="flex gap-2">
                         <Popover
-                          isOpen={openPopoverId === student.id}
+                          open={openPopoverId === student.id}
                           onOpenChange={(isOpen) => setOpenPopoverId(isOpen ? student.id : null)}
                         >
                           <PopoverTrigger>
@@ -231,7 +219,7 @@ export const Gradebook = () => {
               </tbody>
             </table>
           </div>
-        </CardBody>
+        </CardContent>
       </Card>
 
       {/* Attendance Panel */}
@@ -248,7 +236,7 @@ export const Gradebook = () => {
               </Button>
             </div>
           </CardHeader>
-          <CardBody>
+          <CardContent>
             <p className="text-sm text-foreground-600">
               <strong>Date:</strong> {new Date().toLocaleDateString()}
             </p>
@@ -260,14 +248,14 @@ export const Gradebook = () => {
               />
               <span>{editingStudent.name} is absent today</span>
             </label>
-          </CardBody>
+          </CardContent>
         </Card>
       )}
 
       {/* Add Grade Panel */}
       <AddGradePanel
-        isOpen={isAddGradeOpen}
-        onClose={() => setIsAddGradeOpen(false)}
+        open={isAddGradeOpen}
+        onOpenChange={() => setIsAddGradeOpen(false)}
         students={studentList}
         classes={classes}
       />
